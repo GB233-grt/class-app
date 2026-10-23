@@ -1,0 +1,24 @@
+# ============================================================
+# Cloudflare Pages 配置（wrangler v3+）
+# 部署后访问地址：https://<name>.pages.dev
+# ============================================================
+
+name = "student-points-exchange"
+compatibility_date = "2024-09-23"
+
+# 构建产物目录（与 Cloudflare Pages 控制台中的"构建输出目录"保持一致）
+pages_build_output_dir = "dist"
+
+# ------------------------------------------------------------
+# 环境变量说明（不要把真实密钥提交到代码仓库）：
+#   SUPABASE_URL              —— Supabase 项目 URL（可配置为明文变量）
+#   SUPABASE_ANON_KEY         —— Supabase 匿名密钥（可配置为明文变量）
+#   SUPABASE_SERVICE_ROLE_KEY —— Supabase 服务角色密钥（务必配置为 Secret）
+#
+# 配置方式（二选一）：
+#   1. Cloudflare Pages 控制台 → 项目设置 → 环境变量
+#   2. 命令行：wrangler pages secret put SUPABASE_SERVICE_ROLE_KEY
+#
+# 本地开发时，Functions 读取项目根目录下的 .dev.vars 文件
+# （复制 .dev.vars.example 为 .dev.vars 并填写）。
+# ------------------------------------------------------------
