@@ -15,10 +15,29 @@ import type {
   Student,
 } from '../types';
 
-/** 认证相关 */
+/** 登录接口返回的会话数据 */
+export interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;
+  user: { id: string; email: string };
+}
+
+/** 认证相关（全部经后端代理 Supabase Auth，前端不直连 supabase.co） */
 export const authApi = {
   /** 获取当前登录用户资料 */
   me: () => api.get<Student>('/auth/me'),
+  /** 邮箱密码登录 */
+  login: (email: string, password: string) =>
+    api.post<LoginResponse>('/auth/login', { email, password }),
+  /** 登出（服务端吊销令牌 + 前端清除本地会话） */
+  logout: () => api.post<{ success: boolean }>('/auth/logout'),
+  /** 发送密码重置邮件 */
+  resetPassword: (email: string, redirectTo?: string) =>
+    api.post<{ success: boolean }>('/auth/reset-password', {
+      email,
+      redirect_to: redirectTo ?? window.location.origin,
+    }),
 };
 
 /** 商品（物品）管理 */

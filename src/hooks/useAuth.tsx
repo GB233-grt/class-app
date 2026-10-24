@@ -1,6 +1,7 @@
 /**
  * 认证上下文：会话管理 + 当前用户资料
- * 登录/登出/重置密码通过 Supabase Auth SDK；资料读取走后端 /api/auth/me
+ * 登录/登出/重置密码全部走后端 /api/auth/* 接口（后端代理 Supabase Auth），
+ * 前端不直连 supabase.co，保证在网络受限环境下依然可用
  */
 import {
   createContext,
@@ -12,8 +13,7 @@ import {
   type ReactNode,
 } from 'react';
 import { authApi } from '../api';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import { translateAuthError } from '../lib/utils';
+import { clearSession, readSession, writeSession } from '../lib/session';
 import type { Student } from '../types';
 
 interface AuthContextValue {
@@ -37,24 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Student | null>(null);
   const [initializing, setInitializing] = useState(true);
 
-  const loadProfile = useCallback(async () => {
+  const loadProfile = useCallback(async (): Promise<Student | null> => {
     try {
       const me = await authApi.me();
       setProfile(me);
+      return me;
     } catch {
-      // 令牌失效或资料缺失：统一回到未登录状态
-      await supabase.auth.signOut();
+      // 令牌失效或资料缺失：清除本地会话，回到未登录状态
+      clearSession();
       setProfile(null);
+      return null;
     }
   }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    // 启动时恢复持久化会话
+    // 启动时从本地存储恢复会话
     void (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
+      if (readSession()) {
         await loadProfile();
       }
       if (mounted) {
@@ -62,45 +63,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })();
 
-    // 监听登出事件
-    const { data: subscription } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        setProfile(null);
-      }
-    });
-
     return () => {
       mounted = false;
-      subscription.subscription.unsubscribe();
     };
   }, [loadProfile]);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      if (!isSupabaseConfigured) {
-        throw new Error('尚未配置 Supabase 环境变量，请参考 README 完成 .env 配置');
+      const result = await authApi.login(email, password);
+      if (!result?.access_token || !result?.refresh_token) {
+        throw new Error('登录失败：服务器未返回有效会话');
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        throw new Error(translateAuthError(error.message));
+      writeSession({
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+        expires_at: result.expires_at,
+      });
+      const me = await loadProfile();
+      if (!me) {
+        // 登录成功但 students 表没有对应资料（种子数据未执行）
+        throw new Error('登录成功，但系统中没有该账号的学生资料，请联系管理员核对');
       }
-      await loadProfile();
     },
     [loadProfile],
   );
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await authApi.logout();
+    } catch {
+      // 服务端吊销失败不影响本地登出
+    }
+    clearSession();
     setProfile(null);
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
-    });
-    if (error) {
-      throw new Error(translateAuthError(error.message));
-    }
+    await authApi.resetPassword(email);
   }, []);
 
   const refreshProfile = useCallback(async () => {

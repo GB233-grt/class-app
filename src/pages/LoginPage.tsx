@@ -9,7 +9,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { isSupabaseConfigured } from '../lib/supabase';
 import { DEMO_ACCOUNTS } from '../lib/constants';
 import { loginSchema, type LoginValues } from '../lib/validation';
 import { getErrorMessage } from '../lib/utils';
@@ -118,13 +117,6 @@ export default function LoginPage() {
 
           <h2 className="font-display text-2xl font-bold text-ink-900">欢迎回来</h2>
           <p className="mt-1 text-sm text-ink-500">请登录你的账号，继续积分之旅</p>
-
-          {/* 环境变量配置提示 */}
-          {!isSupabaseConfigured && (
-            <div className="mt-6 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-accent-600">
-              尚未配置 Supabase 环境变量，请复制 .env.example 为 .env 并填写后重启服务（详见 README）。
-            </div>
-          )}
 
           {/* 错误提示 */}
           {error && (

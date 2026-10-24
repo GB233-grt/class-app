@@ -5,8 +5,19 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { HttpError } from './http';
 import type { Env } from './types';
 
+/** 环境变量校验：缺失时抛出可读的业务错误，而非晦涩的运行时异常 */
+function requireConfig(env: Env): void {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    throw new HttpError(
+      500,
+      '服务端缺少 SUPABASE_URL / SUPABASE_ANON_KEY 环境变量配置，请在 Pages 项目设置中添加',
+    );
+  }
+}
+
 /** 匿名客户端：仅用于登录等认证端点（不携带用户 JWT） */
 export function createAnonClient(env: Env): SupabaseClient {
+  requireConfig(env);
   return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
@@ -14,6 +25,7 @@ export function createAnonClient(env: Env): SupabaseClient {
 
 /** 用户级客户端：携带用户 JWT 发起请求，受行级安全（RLS）约束 */
 export function createUserClient(env: Env, accessToken: string): SupabaseClient {
+  requireConfig(env);
   return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
