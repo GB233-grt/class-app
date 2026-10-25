@@ -45,6 +45,9 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
             src={item.image_url}
             alt={item.name}
             loading="lazy"
+            // 不发送 Referer：淘宝/阿里云等图片 CDN 有防盗链，
+            // 带本站 Referer 会被 403 拒绝，空来源可正常加载
+            referrerPolicy="no-referrer"
             onError={() => setImageFailed(true)}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
