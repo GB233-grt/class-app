@@ -28,7 +28,7 @@ export const DEMO_ACCOUNTS = {
 } as const;
 
 /** 项目作者（页脚「帮助」中展示） */
-export const PROJECT_AUTHOR = 'GB233-grt';
+export const PROJECT_AUTHOR = 'GB233-grt(高兰圯)';
 
 /** 页脚「系统消息」公告（新的放在前面即可） */
 export const SYSTEM_MESSAGES: readonly { title: string; detail: string }[] = [
