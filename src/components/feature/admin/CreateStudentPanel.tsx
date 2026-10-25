@@ -1,17 +1,21 @@
 /**
- * 新建用户面板：创建学生/教师账号（同步创建 Supabase Auth 登录账号）
+ * 新建用户面板：单个创建 / Excel 批量导入（同步创建 Supabase Auth 登录账号）
  */
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserPlus } from 'lucide-react';
+import { FileSpreadsheet, UserPlus } from 'lucide-react';
 import { studentsApi } from '../../../api';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../common/Button';
 import { Card } from '../../common/Card';
 import { Input } from '../../common/Input';
 import { Select } from '../../common/Select';
-import { getErrorMessage } from '../../../lib/utils';
+import { cn, getErrorMessage } from '../../../lib/utils';
 import { studentFormSchema, type StudentFormValues } from '../../../lib/validation';
+import { ImportStudentsPanel } from './ImportStudentsPanel';
+
+type CreateMode = 'single' | 'import';
 
 const EMPTY_FORM = {
   name: '',
@@ -24,6 +28,8 @@ const EMPTY_FORM = {
 
 export function CreateStudentPanel() {
   const { showToast } = useToast();
+  const [mode, setMode] = useState<CreateMode>('single');
+
   const {
     register,
     handleSubmit,
@@ -62,64 +68,96 @@ export function CreateStudentPanel() {
 
   return (
     <Card className="animate-fade-up mx-auto max-w-2xl p-6">
-      <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-bold text-ink-900">
-        <UserPlus className="h-5 w-5 text-brand-500" />
-        新建用户
-      </h2>
-      <p className="mb-5 text-sm text-ink-500">
-        学生登录学生商店兑换物品；教师登录教师工作台（兑换发放确认 + 学生加分）。初始积分大于 0
-        时会自动记入积分明细。
-      </p>
-      <form className="space-y-4" onSubmit={onSubmit} noValidate>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select label="角色" error={errors.role?.message} {...register('role')}>
-            <option value="student">学生</option>
-            <option value="teacher">教师</option>
-          </Select>
-          <Input
-            label="姓名"
-            placeholder={role === 'teacher' ? '教师姓名' : '学生姓名'}
-            error={errors.name?.message}
-            {...register('name')}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="学号"
-            placeholder="选填，例如 S2024003"
-            error={errors.student_no?.message}
-            {...register('student_no')}
-          />
-          <Input
-            label="邮箱"
-            type="email"
-            placeholder="someone@school.edu"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="初始密码"
-            type="password"
-            placeholder="至少 6 位"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-          <Input
-            label="初始积分"
-            type="number"
-            min={0}
-            placeholder="0"
-            error={errors.points?.message}
-            disabled={role === 'teacher'}
-            {...register('points')}
-          />
-        </div>
-        <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
-          创建{role === 'teacher' ? '教师' : '学生'}
-        </Button>
-      </form>
+      {/* 模式切换 */}
+      <nav className="mb-4 inline-flex items-center gap-1 rounded-full bg-ink-100 p-1">
+        <button
+          type="button"
+          onClick={() => setMode('single')}
+          className={cn(
+            'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            mode === 'single' ? 'bg-ink-950 text-white shadow-sm' : 'text-ink-600 hover:text-ink-900',
+          )}
+        >
+          <UserPlus className="h-4 w-4" />
+          单个创建
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('import')}
+          className={cn(
+            'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
+            mode === 'import' ? 'bg-ink-950 text-white shadow-sm' : 'text-ink-600 hover:text-ink-900',
+          )}
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Excel 批量导入
+        </button>
+      </nav>
+
+      {mode === 'import' ? (
+        <ImportStudentsPanel />
+      ) : (
+        <>
+          <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-bold text-ink-900">
+            <UserPlus className="h-5 w-5 text-brand-500" />
+            新建用户
+          </h2>
+          <p className="mb-5 text-sm text-ink-500">
+            学生登录学生商店兑换物品；教师登录教师工作台（兑换发放确认 + 学生加分）。初始积分大于 0
+            时会自动记入积分明细。
+          </p>
+          <form className="space-y-4" onSubmit={onSubmit} noValidate>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Select label="角色" error={errors.role?.message} {...register('role')}>
+                <option value="student">学生</option>
+                <option value="teacher">教师</option>
+              </Select>
+              <Input
+                label="姓名"
+                placeholder={role === 'teacher' ? '教师姓名' : '学生姓名'}
+                error={errors.name?.message}
+                {...register('name')}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="学号"
+                placeholder="选填，例如 S2024003"
+                error={errors.student_no?.message}
+                {...register('student_no')}
+              />
+              <Input
+                label="邮箱"
+                type="email"
+                placeholder="someone@school.edu"
+                error={errors.email?.message}
+                {...register('email')}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="初始密码"
+                type="password"
+                placeholder="至少 6 位"
+                error={errors.password?.message}
+                {...register('password')}
+              />
+              <Input
+                label="初始积分"
+                type="number"
+                min={0}
+                placeholder="0"
+                error={errors.points?.message}
+                disabled={role === 'teacher'}
+                {...register('points')}
+              />
+            </div>
+            <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
+              创建{role === 'teacher' ? '教师' : '学生'}
+            </Button>
+          </form>
+        </>
+      )}
     </Card>
   );
 }
