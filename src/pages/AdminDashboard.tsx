@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Boxes, Coins, Package, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import { Header } from '../components/layout/Header';
+import { Footer } from '../components/layout/Footer';
 import { StatCard } from '../components/feature/StatCard';
 import { ItemsPanel } from '../components/feature/admin/ItemsPanel';
 import { StudentsPanel } from '../components/feature/admin/StudentsPanel';
@@ -16,7 +17,7 @@ type AdminTabKey = 'items' | 'students' | 'create';
 const TABS: { key: AdminTabKey; label: string; icon: LucideIcon }[] = [
   { key: 'items', label: '商品管理', icon: Package },
   { key: 'students', label: '学生管理', icon: Users },
-  { key: 'create', label: '新建学生', icon: UserPlus },
+  { key: 'create', label: '新建用户', icon: UserPlus },
 ];
 
 export default function AdminDashboard() {
@@ -24,11 +25,11 @@ export default function AdminDashboard() {
   const { stats, loading: statsLoading } = useStats();
 
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="flex min-h-screen flex-col bg-ink-50">
       {/* 深色顶部导航栏 */}
       <Header variant="admin" />
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {/* 统计概览卡片 */}
         <section className="grid gap-4 sm:grid-cols-3">
           <StatCard
@@ -79,6 +80,8 @@ export default function AdminDashboard() {
         {activeTab === 'students' && <StudentsPanel />}
         {activeTab === 'create' && <CreateStudentPanel />}
       </main>
+
+      <Footer />
     </div>
   );
 }

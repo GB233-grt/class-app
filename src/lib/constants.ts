@@ -26,3 +26,50 @@ export const DEMO_ACCOUNTS = {
   teacher: 'teacher@school.edu',
   student: 'student@school.edu',
 } as const;
+
+/** 项目作者（页脚「帮助」中展示） */
+export const PROJECT_AUTHOR = 'GB233-grt';
+
+/** 页脚「系统消息」公告（新的放在前面即可） */
+export const SYSTEM_MESSAGES: readonly { title: string; detail: string }[] = [
+  {
+    title: '教师工作台已上线',
+    detail: '教师可确认兑换发放、给学生加减积分；学生兑换的物品需线下向教师领取。',
+  },
+  {
+    title: 'Excel 批量导入已上线',
+    detail: '管理员可在「新建用户 → Excel 批量导入」中一次导入整个班级名单（支持下载模板）。',
+  },
+  {
+    title: '按数量兑换已上线',
+    detail: '学生兑换商品时可自选数量，可选上限由剩余库存与可用积分共同决定。',
+  },
+];
+
+/** 页脚「帮助」使用方法（按角色分栏） */
+export const USAGE_GUIDE: readonly { role: string; points: readonly string[] }[] = [
+  {
+    role: '学生',
+    points: [
+      '登录后在「积分商店」选择商品与数量，确认合计积分后兑换',
+      '「兑换记录」查看每笔兑换的发放状态（待发放 / 已发放）',
+      '「积分明细」查看每一笔积分的来源与去处',
+    ],
+  },
+  {
+    role: '教师',
+    points: [
+      '登录后自动进入教师工作台',
+      '「兑换发放」：核对学生后当面发放物品，点击「标记已发放」；误操作可「撤回」（不退积分）',
+      '「学生加分」：输入姓名或学号搜索学生，快速加减积分并选择原因',
+    ],
+  },
+  {
+    role: '管理员',
+    points: [
+      '「商品管理」：上架 / 下架商品，维护积分价格与库存',
+      '「新建用户」：单个创建，或用 Excel 表格批量导入整个班级',
+      '「学生管理」：查看名单与积分，直接调整积分',
+    ],
+  },
+];

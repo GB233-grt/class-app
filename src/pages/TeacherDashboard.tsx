@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Award, ClipboardList, GraduationCap, type LucideIcon } from 'lucide-react';
 import { Header } from '../components/layout/Header';
+import { Footer } from '../components/layout/Footer';
 import { FulfillmentPanel } from '../components/feature/teacher/FulfillmentPanel';
 import { AwardPointsPanel } from '../components/feature/teacher/AwardPointsPanel';
 import { useAuth } from '../hooks/useAuth';
@@ -21,10 +22,10 @@ export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState<TeacherTabKey>('fulfillment');
 
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="flex min-h-screen flex-col bg-ink-50">
       <Header variant="teacher" />
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {/* 欢迎横幅 */}
         <section className="animate-fade-up relative overflow-hidden rounded-xl bg-gradient-to-br from-ink-950 via-ink-900 to-brand-800 p-6 text-white shadow-soft sm:p-8">
           <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
@@ -69,6 +70,8 @@ export default function TeacherDashboard() {
         {activeTab === 'fulfillment' && <FulfillmentPanel />}
         {activeTab === 'award' && <AwardPointsPanel />}
       </main>
+
+      <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { Coins, Gift, ReceiptText, ScrollText, ShoppingBag, type LucideIcon } from 'lucide-react';
 import { Header } from '../components/layout/Header';
+import { Footer } from '../components/layout/Footer';
 import { StatCard } from '../components/feature/StatCard';
 import { StorePanel } from '../components/feature/student/StorePanel';
 import { RedemptionsPanel } from '../components/feature/student/RedemptionsPanel';
@@ -41,10 +42,10 @@ export default function StudentDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-ink-50">
+    <div className="flex min-h-screen flex-col bg-ink-50">
       <Header variant="student" />
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
         {/* 积分卡片：深色渐变背景 */}
         <section className="animate-fade-up relative overflow-hidden rounded-xl bg-gradient-to-br from-ink-950 via-ink-900 to-brand-800 p-6 text-white shadow-soft sm:p-8">
           <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
@@ -116,6 +117,8 @@ export default function StudentDashboard() {
         )}
         {activeTab === 'ledger' && <LedgerPanel />}
       </main>
+
+      <Footer />
     </div>
   );
 }
