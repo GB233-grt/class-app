@@ -1,24 +1,26 @@
 /**
- * 学生仪表盘：积分卡片 + 统计数据 + 兑换商品/兑换记录/积分明细
+ * 学生仪表盘：积分卡片 + 统计数据 + 兑换商品/兑换记录/积分明细/排行榜
  */
 import { useMemo, useState } from 'react';
-import { Coins, Gift, ReceiptText, ScrollText, ShoppingBag, type LucideIcon } from 'lucide-react';
+import { Coins, Gift, ReceiptText, ScrollText, ShoppingBag, Trophy, type LucideIcon } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { StatCard } from '../components/feature/StatCard';
 import { StorePanel } from '../components/feature/student/StorePanel';
 import { RedemptionsPanel } from '../components/feature/student/RedemptionsPanel';
 import { LedgerPanel } from '../components/feature/student/LedgerPanel';
+import { LeaderboardPanel } from '../components/feature/student/LeaderboardPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useRedemptions } from '../hooks/useRedemptions';
 import { cn, formatPoints } from '../lib/utils';
 
-type StudentTabKey = 'store' | 'history' | 'ledger';
+type StudentTabKey = 'store' | 'history' | 'ledger' | 'leaderboard';
 
 const TABS: { key: StudentTabKey; label: string; icon: LucideIcon }[] = [
   { key: 'store', label: '兑换商品', icon: ShoppingBag },
   { key: 'history', label: '兑换记录', icon: ReceiptText },
   { key: 'ledger', label: '积分明细', icon: ScrollText },
+  { key: 'leaderboard', label: '排行榜', icon: Trophy },
 ];
 
 export default function StudentDashboard() {
@@ -116,6 +118,7 @@ export default function StudentDashboard() {
           />
         )}
         {activeTab === 'ledger' && <LedgerPanel />}
+        {activeTab === 'leaderboard' && <LeaderboardPanel />}
       </main>
 
       <Footer />

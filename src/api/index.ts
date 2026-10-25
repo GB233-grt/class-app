@@ -10,6 +10,7 @@ import type {
   FulfillmentStatus,
   Item,
   LedgerEntry,
+  LeaderboardEntry,
   RedeemResponse,
   Redemption,
   StaffRedemption,
@@ -88,4 +89,10 @@ export const ledgerApi = {
 /** 管理员统计 */
 export const statsApi = {
   get: () => api.get<Stats>('/stats'),
+};
+
+/** 学生积分排行榜 */
+export const leaderboardApi = {
+  /** 按积分倒序的前 50 名学生（仅 id/姓名/积分） */
+  get: () => api.get<LeaderboardEntry[]>('/leaderboard'),
 };

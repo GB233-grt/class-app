@@ -71,6 +71,13 @@ export interface Stats {
   student_count: number;
 }
 
+/** 排行榜条目（GET /api/leaderboard，仅公开字段） */
+export interface LeaderboardEntry {
+  id: string;
+  name: string;
+  points: number;
+}
+
 /** 添加商品请求体 */
 export interface CreateItemPayload {
   name: string;
