@@ -92,5 +92,8 @@ export function requireInt(
 export function translateDbError(message: string): string {
   if (message.includes('duplicate key')) return '数据已存在，请勿重复添加';
   if (message.includes('row-level security')) return '没有权限执行该操作';
+  if (message.includes('violates check constraint')) {
+    return '数据未通过字段校验，请确认已在 Supabase 执行最新的数据库升级脚本（migrations/07_teacher_and_fulfillment.sql）';
+  }
   return message || '操作失败，请稍后重试';
 }
