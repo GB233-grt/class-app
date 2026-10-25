@@ -1,5 +1,5 @@
 /**
- * GET /api/redemptions/:studentId —— 获取兑换记录（本人或管理员）
+ * GET /api/redemptions/:studentId —— 获取兑换记录（本人或教职工）
  */
 import { HttpError, jsonResponse } from '../../lib/http';
 import { requireAuth } from '../../lib/auth';
@@ -10,7 +10,7 @@ export const onRequestGet: PagesFunction<Env, 'studentId'> = async ({ params, re
   const ctx = await requireAuth(env, request);
   const studentId = String(params.studentId);
 
-  if (!ctx.isAdmin && ctx.userId !== studentId) {
+  if (!ctx.isStaff && ctx.userId !== studentId) {
     throw new HttpError(403, '只能查看自己的兑换记录');
   }
 

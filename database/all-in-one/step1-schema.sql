@@ -3,20 +3,22 @@
 -- 使用方法：Supabase 控制台 → SQL Editor → New query →
 --           粘贴本文件全部内容 → Run
 -- 内容：四张表（students / items / redemptions / points_ledger）、
---       索引、积分调整与物品兑换原子函数、updated_at 触发器、行级安全（RLS）
+--       索引、积分调整/按数量兑换/发放状态流转原子函数、
+--       updated_at 触发器、行级安全（RLS，含教师角色）
 -- 说明：只需成功执行一次；重复执行会提示 already exists，无害
+--       已有 01~06 旧库请改用 migrations/07_teacher_and_fulfillment.sql 增量升级
 -- ============================================================
 
 -- ============================================================
--- 第 1 部分：学生表 students
+-- 第 1 部分：用户表 students（学生 / 教师 / 管理员）
 -- ============================================================
 CREATE TABLE students (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,                          -- 学生姓名
+  name text NOT NULL,                          -- 姓名
   student_no text UNIQUE,                      -- 学号（可选）
   email text UNIQUE NOT NULL,                  -- 邮箱（登录用）
   role text NOT NULL DEFAULT 'student'
-    CHECK (role IN ('student', 'admin')),      -- 角色：学生或管理员（预留扩展空间）
+    CHECK (role IN ('student', 'teacher', 'admin')),  -- 角色：学生/教师/管理员
   points integer NOT NULL DEFAULT 0
     CHECK (points >= 0),                       -- 当前积分余额
   created_at timestamptz NOT NULL DEFAULT now()
@@ -32,7 +34,7 @@ CREATE TABLE items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,                          -- 商品名称
   description text,                            -- 商品描述
-  cost integer NOT NULL CHECK (cost > 0),      -- 兑换所需积分
+  cost integer NOT NULL CHECK (cost > 0),      -- 兑换所需积分（单价）
   stock integer NOT NULL DEFAULT 0
     CHECK (stock >= 0),                        -- 库存数量
   image_url text,                              -- 商品图片URL
@@ -52,11 +54,18 @@ CREATE TABLE redemptions (
   student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   item_id uuid NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
   item_name text NOT NULL,                     -- 兑换时的商品名称（快照）
-  cost integer NOT NULL,                       -- 兑换时的积分消耗（快照）
+  cost integer NOT NULL,                       -- 兑换时的单价（快照），合计 = cost × quantity
+  quantity integer NOT NULL DEFAULT 1
+    CHECK (quantity >= 1),                     -- 兑换数量
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'fulfilled')),-- 发放状态：待发放 / 已发放（教师线下发放确认）
+  fulfilled_at timestamptz,                    -- 发放时间
+  fulfilled_by uuid REFERENCES students(id) ON DELETE SET NULL, -- 发放操作人（留痕）
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_redemptions_student ON redemptions(student_id);
+CREATE INDEX idx_redemptions_status ON redemptions(status);
 CREATE INDEX idx_redemptions_created ON redemptions(created_at DESC);
 
 -- ============================================================
@@ -67,8 +76,8 @@ CREATE TABLE points_ledger (
   student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   delta integer NOT NULL,                      -- 积分变动值（正=增加，负=减少）
   balance_after integer NOT NULL,              -- 变动后余额
-  reason text NOT NULL,                        -- 变动原因（可扩展枚举）
-  actor_id uuid REFERENCES students(id) ON DELETE SET NULL, -- 操作者（管理员ID）
+  reason text NOT NULL,                        -- 变动原因
+  actor_id uuid REFERENCES students(id) ON DELETE SET NULL, -- 操作者（教师/管理员ID）
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -76,9 +85,23 @@ CREATE INDEX idx_ledger_student ON points_ledger(student_id);
 CREATE INDEX idx_ledger_created ON points_ledger(created_at DESC);
 
 -- ============================================================
--- 第 5 部分：原子函数（积分调整 / 物品兑换）与触发器
+-- 第 5 部分：原子函数（积分调整 / 按数量兑换 / 发放状态流转）与触发器
 -- 保证"校验 → 扣减 → 写流水"单事务完成，防止并发超卖、余额错乱
 -- ============================================================
+
+-- 判断当前登录用户是否为教师或管理员
+CREATE OR REPLACE FUNCTION is_current_staff() RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM students WHERE id = auth.uid() AND role IN ('teacher', 'admin')
+  );
+$$;
+
+-- 积分调整（教师/管理员）：校验权限 → 锁行 → 校验余额 → 更新 → 写明细
 CREATE OR REPLACE FUNCTION adjust_student_points(
   p_student_id uuid,
   p_delta integer,
@@ -93,6 +116,9 @@ DECLARE
   v_balance     integer;
   v_new_balance integer;
 BEGIN
+  IF NOT is_current_staff() THEN
+    RAISE EXCEPTION '无权限：仅教师或管理员可调整积分';
+  END IF;
   IF p_delta IS NULL OR p_delta = 0 THEN
     RAISE EXCEPTION '积分变动值不能为 0';
   END IF;
@@ -100,7 +126,6 @@ BEGIN
     RAISE EXCEPTION '请填写积分变动原因';
   END IF;
 
-  -- 锁定学生行，防止并发调整
   SELECT points INTO v_balance FROM students WHERE id = p_student_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION '学生不存在';
@@ -114,15 +139,17 @@ BEGIN
   UPDATE students SET points = v_new_balance WHERE id = p_student_id;
 
   INSERT INTO points_ledger (student_id, delta, balance_after, reason, actor_id)
-  VALUES (p_student_id, p_delta, v_new_balance, trim(p_reason), p_actor_id);
+  VALUES (p_student_id, p_delta, v_new_balance, trim(p_reason), auth.uid());
 
   RETURN v_new_balance;
 END;
 $$;
 
+-- 兑换物品（学生本人）：校验数量 → 上架 → 库存 → 积分 → 原子扣减
 CREATE OR REPLACE FUNCTION redeem_item(
   p_student_id uuid,
-  p_item_id uuid
+  p_item_id uuid,
+  p_quantity integer DEFAULT 1
 ) RETURNS TABLE (redemption_id uuid, balance_after integer)
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -135,9 +162,19 @@ DECLARE
   v_active       boolean;
   v_balance      integer;
   v_new_balance  integer;
+  v_total        integer;
   v_redemptionId uuid;
 BEGIN
-  -- 锁定商品行，防止超卖
+  IF auth.uid() IS DISTINCT FROM p_student_id THEN
+    RAISE EXCEPTION '无权限：只能为自己兑换物品';
+  END IF;
+  IF p_quantity IS NULL OR p_quantity < 1 THEN
+    RAISE EXCEPTION '兑换数量必须为大于 0 的整数';
+  END IF;
+  IF p_quantity > 99 THEN
+    RAISE EXCEPTION '单次兑换数量不能超过 99';
+  END IF;
+
   SELECT name, cost, stock, is_active
     INTO v_name, v_cost, v_stock, v_active
   FROM items WHERE id = p_item_id FOR UPDATE;
@@ -148,33 +185,70 @@ BEGIN
   IF NOT v_active THEN
     RAISE EXCEPTION '商品已下架';
   END IF;
-  IF v_stock < 1 THEN
-    RAISE EXCEPTION '商品库存不足';
+  IF v_stock < p_quantity THEN
+    RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
   END IF;
 
-  -- 锁定学生行并校验积分
   SELECT points INTO v_balance FROM students WHERE id = p_student_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION '学生不存在';
   END IF;
-  IF v_balance < v_cost THEN
-    RAISE EXCEPTION '积分不足';
+  v_total := v_cost * p_quantity;
+  IF v_balance < v_total THEN
+    RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
   END IF;
 
-  v_new_balance := v_balance - v_cost;
+  v_new_balance := v_balance - v_total;
 
   UPDATE students SET points = v_new_balance WHERE id = p_student_id;
-  UPDATE items SET stock = stock - 1 WHERE id = p_item_id;
+  UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
 
-  -- 兑换记录（快照商品名称与消耗积分，防止商品变更后历史记录失真）
-  INSERT INTO redemptions (student_id, item_id, item_name, cost)
-  VALUES (p_student_id, p_item_id, v_name, v_cost)
+  INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity)
+  VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity)
   RETURNING id INTO v_redemptionId;
 
   INSERT INTO points_ledger (student_id, delta, balance_after, reason)
-  VALUES (p_student_id, -v_cost, v_new_balance, '兑换商品：' || v_name);
+  VALUES (
+    p_student_id, -v_total, v_new_balance,
+    '兑换商品：' || v_name || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
+  );
 
   RETURN QUERY VALUES (v_redemptionId, v_new_balance);
+END;
+$$;
+
+-- 更新发放状态（教师/管理员）：待发放 ↔ 已发放，留痕可撤回
+CREATE OR REPLACE FUNCTION update_redemption_status(
+  p_redemption_id uuid,
+  p_new_status text
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_current text;
+BEGIN
+  IF p_new_status NOT IN ('pending', 'fulfilled') THEN
+    RAISE EXCEPTION '非法的发放状态';
+  END IF;
+  IF NOT is_current_staff() THEN
+    RAISE EXCEPTION '无权限：仅教师或管理员可更新发放状态';
+  END IF;
+
+  SELECT status INTO v_current FROM redemptions WHERE id = p_redemption_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION '兑换记录不存在';
+  END IF;
+  IF v_current = p_new_status THEN
+    RAISE EXCEPTION '发放状态未发生变化';
+  END IF;
+
+  UPDATE redemptions
+    SET status = p_new_status,
+        fulfilled_at = CASE WHEN p_new_status = 'fulfilled' THEN now() ELSE NULL END,
+        fulfilled_by = CASE WHEN p_new_status = 'fulfilled' THEN auth.uid() ELSE NULL END
+    WHERE id = p_redemption_id;
 END;
 $$;
 
@@ -197,12 +271,15 @@ CREATE TRIGGER trg_items_updated_at
 REVOKE ALL ON FUNCTION adjust_student_points(uuid, integer, text, uuid) FROM public, anon;
 GRANT EXECUTE ON FUNCTION adjust_student_points(uuid, integer, text, uuid) TO authenticated;
 
-REVOKE ALL ON FUNCTION redeem_item(uuid, uuid) FROM public, anon;
-GRANT EXECUTE ON FUNCTION redeem_item(uuid, uuid) TO authenticated;
+REVOKE ALL ON FUNCTION redeem_item(uuid, uuid, integer) FROM public, anon;
+GRANT EXECUTE ON FUNCTION redeem_item(uuid, uuid, integer) TO authenticated;
+
+REVOKE ALL ON FUNCTION update_redemption_status(uuid, text) FROM public, anon;
+GRANT EXECUTE ON FUNCTION update_redemption_status(uuid, text) TO authenticated;
 
 -- ============================================================
 -- 第 6 部分：行级安全（RLS）
--- 普通用户凭证只能读自己的数据；所有写操作走后端或安全函数
+-- 学生凭证只能读自己的数据；教师可只读学生名单与全部兑换记录
 -- ============================================================
 ALTER TABLE students      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE items         ENABLE ROW LEVEL SECURITY;
@@ -224,7 +301,7 @@ $$;
 CREATE POLICY "学生可查看自己的资料"
   ON students FOR SELECT
   TO authenticated
-  USING (id = auth.uid() OR is_current_admin());
+  USING (id = auth.uid() OR is_current_staff());
 
 CREATE POLICY "登录用户可查看商品"
   ON items FOR SELECT
@@ -234,7 +311,7 @@ CREATE POLICY "登录用户可查看商品"
 CREATE POLICY "用户可查看自己的兑换记录"
   ON redemptions FOR SELECT
   TO authenticated
-  USING (student_id = auth.uid() OR is_current_admin());
+  USING (student_id = auth.uid() OR is_current_staff());
 
 CREATE POLICY "用户可查看自己的积分明细"
   ON points_ledger FOR SELECT

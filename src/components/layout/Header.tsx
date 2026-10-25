@@ -1,23 +1,30 @@
 /**
- * 顶部导航栏：学生端（浅色）/ 管理员端（深色）
+ * 顶部导航栏：学生端（浅色）/ 教师端（深色）/ 管理员端（深色）
  */
 import { Coins, GraduationCap, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
 
 interface HeaderProps {
-  variant?: 'student' | 'admin';
+  variant?: 'student' | 'teacher' | 'admin';
 }
 
 export function Header({ variant = 'student' }: HeaderProps) {
   const { profile, logout } = useAuth();
-  const isAdmin = variant === 'admin';
+  const isDark = variant === 'admin' || variant === 'teacher';
+
+  const roleLabel =
+    variant === 'admin'
+      ? '管理员控制台'
+      : variant === 'teacher'
+        ? '教师工作台'
+        : null;
 
   return (
     <header
       className={cn(
         'sticky top-0 z-40 border-b',
-        isAdmin ? 'border-ink-800 bg-ink-950 text-white' : 'border-ink-100 bg-white',
+        isDark ? 'border-ink-800 bg-ink-950 text-white' : 'border-ink-100 bg-white',
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -28,9 +35,9 @@ export function Header({ variant = 'student' }: HeaderProps) {
           </div>
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-bold tracking-tight">积分商城</span>
-            {isAdmin ? (
+            {roleLabel ? (
               <span className="hidden truncate text-sm text-white/60 sm:inline">
-                管理员控制台{profile ? ` · ${profile.name}` : ''}
+                {roleLabel}{profile ? ` · ${profile.name}` : ''}
               </span>
             ) : (
               <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700">
@@ -42,7 +49,7 @@ export function Header({ variant = 'student' }: HeaderProps) {
 
         {/* 右侧：积分徽章与登出 */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {!isAdmin && (
+          {!isDark && (
             <span className="flex items-center gap-1.5 rounded-full bg-ink-950 px-3 py-1.5 text-sm font-semibold text-white">
               <Coins className="h-4 w-4 text-brand-400" />
               {profile?.points ?? 0} 积分
@@ -53,7 +60,7 @@ export function Header({ variant = 'student' }: HeaderProps) {
             onClick={() => void logout()}
             className={cn(
               'flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              isAdmin
+              isDark
                 ? 'text-white/70 hover:bg-ink-800 hover:text-white'
                 : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900',
             )}

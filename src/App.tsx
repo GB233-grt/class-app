@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { PageLoader } from './components/common/Spinner';
 import LoginPage from './pages/LoginPage';
 import StudentDashboard from './pages/StudentDashboard';
+import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 
 export default function App() {
@@ -21,5 +22,9 @@ export default function App() {
   }
 
   // 按角色进入对应仪表盘
-  return profile.role === 'admin' ? <AdminDashboard /> : <StudentDashboard />;
+  return profile.role === 'admin'
+    ? <AdminDashboard />
+    : profile.role === 'teacher'
+      ? <TeacherDashboard />
+      : <StudentDashboard />;
 }

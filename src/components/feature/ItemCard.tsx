@@ -1,8 +1,8 @@
 /**
- * 商品卡片：图片（含占位图）、库存徽章、积分价格、兑换按钮
+ * 商品卡片：图片（含占位图）、库存徽章、积分价格、数量选择、兑换按钮
  */
 import { useState } from 'react';
-import { Coins, Gift } from 'lucide-react';
+import { Coins, Gift, Minus, Plus } from 'lucide-react';
 import { Button } from '../common/Button';
 import { cn, formatPoints } from '../../lib/utils';
 import type { Item } from '../../types';
@@ -13,16 +13,25 @@ interface ItemCardProps {
   points: number;
   /** 是否正在兑换该商品 */
   redeeming?: boolean;
-  onRedeem: (item: Item) => void;
+  onRedeem: (item: Item, quantity: number) => void;
   /** 渐入动画延迟（毫秒） */
   delay?: number;
 }
 
 export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 }: ItemCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
+  const [qty, setQty] = useState(1);
+
+  // 数量上限 = min(库存, 积分可负担数量)
+  const maxAffordable = item.cost > 0 ? Math.floor(points / item.cost) : 0;
+  const maxQty = Math.max(0, Math.min(item.stock, maxAffordable));
+  const effectiveQty = Math.min(qty, maxQty);
+  const total = item.cost * effectiveQty;
   const soldOut = item.stock <= 0;
-  const insufficient = points < item.cost;
-  const disabled = soldOut || insufficient;
+  const insufficient = maxQty < 1;
+  const disabled = soldOut || insufficient || redeeming;
+
+  const clamp = (value: number) => Math.max(1, Math.min(value, maxQty || 1));
 
   return (
     <div
@@ -68,15 +77,63 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
           </span>
         </div>
 
+        {/* 数量选择器：可兑换时展示 */}
+        {!soldOut && !insufficient && (
+          <div className="flex items-center justify-between rounded-lg bg-ink-50 px-3 py-2">
+            <span className="text-xs font-medium text-ink-600">兑换数量</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label="减少数量"
+                disabled={effectiveQty <= 1 || redeeming}
+                onClick={() => setQty((prev) => clamp(prev - 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-ink-200 bg-white text-ink-700 transition-colors hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="w-8 text-center text-sm font-semibold text-ink-900">
+                {effectiveQty}
+              </span>
+              <button
+                type="button"
+                aria-label="增加数量"
+                disabled={effectiveQty >= maxQty || redeeming}
+                onClick={() => setQty((prev) => clamp(prev + 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-ink-200 bg-white text-ink-700 transition-colors hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 合计积分 */}
+        {!soldOut && !insufficient && (
+          <p className="text-xs text-ink-500">
+            合计 <span className="font-semibold text-ink-900">{formatPoints(total)}</span> 积分
+            {effectiveQty >= maxQty && maxQty > 1 && (
+              <span className="ml-1 text-amber-600">
+                （已达{item.stock <= maxAffordable ? '库存' : '积分可兑换'}上限）
+              </span>
+            )}
+          </p>
+        )}
+
         {/* 兑换按钮：售罄/积分不足时禁用 */}
         <Button
           className="mt-1 w-full"
           variant={disabled ? 'outline' : 'primary'}
           disabled={disabled}
           loading={redeeming}
-          onClick={() => onRedeem(item)}
+          onClick={() => onRedeem(item, effectiveQty)}
         >
-          {soldOut ? '已售罄' : insufficient ? '积分不足' : '立即兑换'}
+          {soldOut
+            ? '已售罄'
+            : insufficient
+              ? '积分不足'
+              : redeeming
+                ? '兑换中…'
+                : `立即兑换（${formatPoints(total)} 积分）`}
         </Button>
       </div>
     </div>

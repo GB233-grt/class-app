@@ -12,10 +12,14 @@ export interface AuthContext {
   token: string;
   /** Auth 用户 ID（与 students.id 一致） */
   userId: string;
-  /** 学生/管理员资料 */
+  /** 学生/教师/管理员资料 */
   profile: Student;
   /** 是否管理员 */
   isAdmin: boolean;
+  /** 是否教师 */
+  isTeacher: boolean;
+  /** 是否教职工（教师或管理员） */
+  isStaff: boolean;
 }
 
 /** 从请求头提取 Bearer Token */
@@ -52,11 +56,15 @@ export async function requireAuth(env: Env, request: Request): Promise<AuthConte
   }
 
   const typedProfile = profile as Student;
+  const isAdmin = typedProfile.role === 'admin';
+  const isTeacher = typedProfile.role === 'teacher';
   return {
     token,
     userId: userData.user.id,
     profile: typedProfile,
-    isAdmin: typedProfile.role === 'admin',
+    isAdmin,
+    isTeacher,
+    isStaff: isAdmin || isTeacher,
   };
 }
 
@@ -64,6 +72,15 @@ export async function requireAuth(env: Env, request: Request): Promise<AuthConte
 export async function requireAdmin(env: Env, request: Request): Promise<AuthContext> {
   const ctx = await requireAuth(env, request);
   if (!ctx.isAdmin) {
+    throw new HttpError(403, '没有权限执行该操作');
+  }
+  return ctx;
+}
+
+/** 教职工校验：教师或管理员可通过（查看兑换记录、发放确认、积分调整） */
+export async function requireStaff(env: Env, request: Request): Promise<AuthContext> {
+  const ctx = await requireAuth(env, request);
+  if (!ctx.isStaff) {
     throw new HttpError(403, '没有权限执行该操作');
   }
   return ctx;

@@ -30,9 +30,13 @@ export default function StudentDashboard() {
     refresh: refreshRedemptions,
   } = useRedemptions();
 
-  // 累计消耗积分 = 所有兑换记录的积分之和
+  // 累计兑换件数 = 所有兑换记录的数量之和；累计消耗积分 = 单价 × 数量
+  const totalItems = useMemo(
+    () => redemptions.reduce((sum, record) => sum + (record.quantity ?? 1), 0),
+    [redemptions],
+  );
   const totalSpent = useMemo(
-    () => redemptions.reduce((sum, record) => sum + record.cost, 0),
+    () => redemptions.reduce((sum, record) => sum + (record.cost ?? 0) * (record.quantity ?? 1), 0),
     [redemptions],
   );
 
@@ -66,7 +70,7 @@ export default function StudentDashboard() {
         <section className="grid gap-4 sm:grid-cols-2">
           <StatCard
             icon={ShoppingBag}
-            value={redemptionsLoading ? '…' : String(redemptions.length)}
+            value={redemptionsLoading ? '…' : String(totalItems)}
             label="已兑换商品（件）"
             tone="brand"
             delay={60}

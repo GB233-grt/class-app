@@ -40,15 +40,16 @@ export const itemFormSchema = z.object({
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
 
-/** 创建学生表单 */
+/** 创建学生/教师表单 */
 export const studentFormSchema = z.object({
-  name: z.string().trim().min(1, '请输入学生姓名').max(20, '姓名不能超过 20 个字'),
+  name: z.string().trim().min(1, '请输入姓名').max(20, '姓名不能超过 20 个字'),
   student_no: z.string().trim().max(20, '学号不能超过 20 个字'),
   email: z.string().min(1, '请输入邮箱').email('邮箱格式不正确'),
   password: z.string().min(6, '初始密码至少 6 位').max(32, '初始密码最多 32 位'),
   points: z
     .string()
     .refine((v) => v === '' || NON_NEGATIVE_INT.test(v), '初始积分必须是非负整数'),
+  role: z.enum(['student', 'teacher']).default('student'),
 });
 
 export type StudentFormValues = z.infer<typeof studentFormSchema>;
@@ -65,3 +66,10 @@ export const awardFormSchema = z.object({
 });
 
 export type AwardFormValues = z.infer<typeof awardFormSchema>;
+
+/** 教师端积分奖励表单（在通用积分表单基础上增加学生选择） */
+export const teacherAwardFormSchema = awardFormSchema.extend({
+  student_id: z.string().min(1, '请选择学生'),
+});
+
+export type TeacherAwardFormValues = z.infer<typeof teacherAwardFormSchema>;

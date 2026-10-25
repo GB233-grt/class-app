@@ -1,18 +1,19 @@
 /**
  * /api/students
- *   GET  —— 获取学生列表（管理员）
- *   POST —— 创建学生（管理员）：先在 Supabase Auth 创建登录账号，再写入 students 表
+ *   GET  —— 获取用户列表（教师/管理员：教师需要名单以便加分）
+ *   POST —— 创建用户（管理员）：先在 Supabase Auth 创建登录账号，再写入 students 表
+ *           支持角色选择：学生（默认）或教师
  */
 import { HttpError, jsonResponse, optionalString, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
-import { requireAdmin } from '../../lib/auth';
+import { requireAdmin, requireStaff } from '../../lib/auth';
 import { createAdminClient, createUserClient } from '../../lib/supabase';
 import type { Env, Student } from '../../lib/types';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// 管理员获取学生列表
+// 教职工：获取用户列表（教师工作台加分时需要学生名单）
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
-  const ctx = await requireAdmin(env, request);
+  const ctx = await requireStaff(env, request);
 
   const { data, error } = await createUserClient(env, ctx.token)
     .from('students')
@@ -40,7 +41,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (password.length < 6) {
     throw new HttpError(400, '初始密码至少 6 位');
   }
-  const points = requireInt(body.points ?? 0, '初始积分', { min: 0, max: 1000000 });
+  // 角色：学生（默认）或教师；教师无积分概念，初始积分强制为 0
+  const role: 'student' | 'teacher' = body.role === 'teacher' ? 'teacher' : 'student';
+  const points =
+    role === 'teacher' ? 0 : requireInt(body.points ?? 0, '初始积分', { min: 0, max: 1000000 });
 
   const adminClient = createAdminClient(env);
 
@@ -63,7 +67,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // 第二步：写入学生业务表（ID 与 Auth 用户保持一致，RLS 依赖该对应关系）
   const { data: profile, error: insertError } = await adminClient
     .from('students')
-    .insert({ id: authData.user.id, name, student_no: studentNo, email, role: 'student', points })
+    .insert({ id: authData.user.id, name, student_no: studentNo, email, role, points })
     .select('*')
     .single();
 

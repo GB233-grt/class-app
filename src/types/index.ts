@@ -4,9 +4,9 @@
  */
 
 /** 用户角色 */
-export type UserRole = 'student' | 'admin';
+export type UserRole = 'student' | 'teacher' | 'admin';
 
-/** 学生/管理员资料（students 表） */
+/** 学生/教师/管理员资料（students 表） */
 export interface Student {
   id: string;
   name: string;
@@ -30,6 +30,9 @@ export interface Item {
   updated_at: string;
 }
 
+/** 发放状态 */
+export type FulfillmentStatus = 'pending' | 'fulfilled';
+
 /** 兑换记录（redemptions 表） */
 export interface Redemption {
   id: string;
@@ -37,7 +40,16 @@ export interface Redemption {
   item_id: string;
   item_name: string;
   cost: number;
+  quantity: number;
+  status: FulfillmentStatus;
+  fulfilled_at: string | null;
+  fulfilled_by: string | null;
   created_at: string;
+}
+
+/** 教职工视角的兑换记录（关联学生姓名，用于教师工作台） */
+export interface StaffRedemption extends Redemption {
+  students: { name: string; student_no: string | null } | null;
 }
 
 /** 积分明细（points_ledger 表） */
@@ -68,13 +80,14 @@ export interface CreateItemPayload {
   image_url?: string | null;
 }
 
-/** 创建学生请求体 */
+/** 创建用户请求体（支持角色选择：学生/教师） */
 export interface CreateStudentPayload {
   name: string;
   student_no?: string | null;
   email: string;
   password: string;
   points: number;
+  role?: 'student' | 'teacher';
 }
 
 /** 积分增减请求体 */

@@ -23,5 +23,6 @@ export const POINT_REASONS: readonly string[] = [
 /** 登录页展示的演示账号邮箱（密码由管理员在 Supabase 后台设置） */
 export const DEMO_ACCOUNTS = {
   admin: 'admin@school.edu',
+  teacher: 'teacher@school.edu',
   student: 'student@school.edu',
 } as const;

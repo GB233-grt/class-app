@@ -5,6 +5,7 @@
 --   2. 已在 Supabase 控制台 → Authentication → Users → Add user
 --      手动创建以下账号（勾选 Auto Confirm User，密码自定）：
 --        admin@school.edu     （管理员）
+--        teacher@school.edu   （教师）
 --        student@school.edu   （学生）
 --        student2@school.edu  （学生）
 -- 使用方法：SQL Editor → New query → 粘贴本文件全部内容 → Run
@@ -22,7 +23,16 @@ WHERE u.email = 'admin@school.edu'
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 第 2 部分：示例学生记录
+-- 第 2 部分：教师记录
+-- ============================================================
+INSERT INTO students (id, name, student_no, email, role, points)
+SELECT u.id, '教师', NULL, 'teacher@school.edu', 'teacher', 0
+FROM auth.users u
+WHERE u.email = 'teacher@school.edu'
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- 第 3 部分：示例学生记录
 -- ============================================================
 INSERT INTO students (id, name, student_no, email, role, points)
 SELECT u.id, '学生用户', 'S2024001', 'student@school.edu', 'student', 250
@@ -37,7 +47,7 @@ WHERE u.email = 'student2@school.edu'
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 第 3 部分：示例商品（物品）数据 —— 可自由修改
+-- 第 4 部分：示例商品（物品）数据 —— 可自由修改
 -- ============================================================
 INSERT INTO items (name, description, cost, stock, image_url) VALUES
   ('学校笔记本',     'A5硬壳笔记本，120页',        30,  50,  NULL),

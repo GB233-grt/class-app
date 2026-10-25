@@ -13,13 +13,13 @@ export interface Env {
   SUPABASE_SERVICE_ROLE_KEY: string;
 }
 
-/** 学生表行结构 */
+/** 学生表行结构（角色：学生 / 教师 / 管理员） */
 export interface Student {
   id: string;
   name: string;
   student_no: string | null;
   email: string;
-  role: 'student' | 'admin';
+  role: 'student' | 'teacher' | 'admin';
   points: number;
   created_at: string;
 }
@@ -53,6 +53,37 @@ export interface CreateStudentPayload {
   email: string;
   password: string;
   points: number;
+  /** 角色：学生或教师（管理员只能通过种子数据创建） */
+  role?: 'student' | 'teacher';
+}
+
+/** 兑换请求体 */
+export interface RedeemPayload {
+  item_id: string;
+  /** 兑换数量（1~99） */
+  quantity?: number;
+}
+
+/** 发放状态 */
+export type FulfillmentStatus = 'pending' | 'fulfilled';
+
+/** 兑换记录行结构（与数据库 redemptions 表一致） */
+export interface Redemption {
+  id: string;
+  student_id: string;
+  item_id: string;
+  item_name: string;
+  cost: number;
+  quantity: number;
+  status: FulfillmentStatus;
+  fulfilled_at: string | null;
+  fulfilled_by: string | null;
+  created_at: string;
+}
+
+/** 教职工视角的兑换记录（关联学生姓名） */
+export interface StaffRedemption extends Redemption {
+  students: { name: string; student_no: string | null } | null;
 }
 
 /** 积分增减请求体 */

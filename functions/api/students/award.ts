@@ -1,9 +1,9 @@
 /**
- * POST /api/students/award —— 积分增减（管理员）
- * 调用数据库函数 adjust_student_points 原子完成：校验余额 → 更新 → 写积分明细
+ * POST /api/students/award —— 积分增减（教师/管理员）
+ * 调用数据库函数 adjust_student_points 原子完成：权限校验 → 校验余额 → 更新 → 写积分明细
  */
 import { HttpError, jsonResponse, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
-import { requireAdmin } from '../../lib/auth';
+import { requireStaff } from '../../lib/auth';
 import { createUserClient } from '../../lib/supabase';
 import type { Env } from '../../lib/types';
 
@@ -14,7 +14,7 @@ interface AwardBody {
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  const ctx = await requireAdmin(env, request);
+  const ctx = await requireStaff(env, request);
 
   const body = await readJson<AwardBody>(request);
   const studentId = requireString(body.student_id, '学生 ID');

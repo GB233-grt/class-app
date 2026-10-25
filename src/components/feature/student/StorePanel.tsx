@@ -24,13 +24,18 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
   const { showToast } = useToast();
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
-  // 兑换物品：后端原子校验积分与库存
-  const handleRedeem = async (item: Item) => {
+  // 兑换物品：后端原子校验数量/积分与库存
+  const handleRedeem = async (item: Item, quantity: number) => {
     if (!profile) return;
     setRedeemingId(item.id);
     try {
-      const result = await redemptionsApi.redeem(item.id);
-      showToast('success', result.message || '兑换成功');
+      const result = await redemptionsApi.redeem(item.id, quantity);
+      showToast(
+        'success',
+        quantity > 1
+          ? `兑换成功！${item.name} × ${quantity} 已提交，请到兑换记录查看发放状态`
+          : result.message || '兑换成功',
+      );
       // 刷新积分余额与商品库存
       await Promise.all([refreshProfile(), refresh()]);
       onRedeemed();
@@ -69,7 +74,7 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
           item={item}
           points={profile?.points ?? 0}
           redeeming={redeemingId === item.id}
-          onRedeem={(target) => void handleRedeem(target)}
+          onRedeem={(target, quantity) => void handleRedeem(target, quantity)}
           delay={index * 60}
         />
       ))}
