@@ -48,6 +48,8 @@ export const itemsApi = {
   list: () => api.get<Item[]>('/items'),
   /** 添加商品（管理员） */
   create: (payload: CreateItemPayload) => api.post<Item>('/items', payload),
+  /** 编辑商品（管理员）：名称/描述/价格/库存/图片 */
+  update: (id: string, payload: CreateItemPayload) => api.put<Item>(`/items/${id}`, payload),
   /** 删除商品（管理员，软删除下架） */
   remove: (id: string) => api.delete<{ message: string }>(`/items/${id}`),
 };
