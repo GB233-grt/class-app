@@ -55,10 +55,12 @@ export function StudentsPanel() {
         <span
           className={cn(
             'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-            student.role === 'admin' ? 'bg-ink-950 text-white' : 'bg-brand-50 text-brand-700',
+            student.role === 'admin' && 'bg-ink-950 text-white',
+            student.role === 'teacher' && 'bg-amber-50 text-amber-700',
+            student.role === 'student' && 'bg-brand-50 text-brand-700',
           )}
         >
-          {student.role === 'admin' ? '管理员' : '学生'}
+          {student.role === 'admin' ? '管理员' : student.role === 'teacher' ? '教师' : '学生'}
         </span>
       ),
     },
