@@ -1,7 +1,7 @@
 /**
  * 顶部导航栏：学生端（浅色）/ 教师端（深色）/ 管理员端（深色）
  */
-import { Coins, GraduationCap, LogOut } from 'lucide-react';
+import { Coins, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
 
@@ -30,9 +30,12 @@ export function Header({ variant = 'student' }: HeaderProps) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         {/* 左侧：Logo 与标识 */}
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white">
-            <GraduationCap className="h-5 w-5" />
-          </div>
+          {/* 应用图标（透明底，自带圆角与品牌色） */}
+          <img
+            src="/rounded-image.png"
+            alt="积分商城"
+            className="h-10 w-10 rounded-lg"
+          />
           <div className="flex items-center gap-2">
             <span className="font-display text-lg font-bold tracking-tight">积分商城</span>
             {roleLabel ? (
