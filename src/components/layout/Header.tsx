@@ -30,9 +30,9 @@ export function Header({ variant = 'student' }: HeaderProps) {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         {/* 左侧：Logo 与标识 */}
         <div className="flex items-center gap-3">
-          {/* 应用图标（透明底，自带圆角与品牌色） */}
+          {/* 应用图标（透明底，自带圆角与品牌色；96px 小图， retina 屏足够清晰） */}
           <img
-            src="/rounded-image.png"
+            src="/rounded-image-96.png"
             alt="积分商城"
             className="h-10 w-10 rounded-lg"
           />
