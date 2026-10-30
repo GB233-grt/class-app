@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import {
   CheckCircle2,
   Download,
+  Eye,
   FileSpreadsheet,
   Loader2,
   Upload,
@@ -16,6 +17,7 @@ import { useStudents } from '../../../hooks/useStudents';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../common/Button';
 import { DataTable, type DataTableColumn } from '../../common/DataTable';
+import { TemplatePreview } from '../../common/TemplatePreview';
 import { cn, getErrorMessage } from '../../../lib/utils';
 import { parseStudentWorkbook, type ImportRow, type ImportStatus } from '../../../lib/excelImport';
 
@@ -57,6 +59,7 @@ export function ImportStudentsPanel() {
   const [parseError, setParseError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [showTemplate, setShowTemplate] = useState(false);
 
   const readyCount = rows?.filter((row) => row.status === 'ready').length ?? 0;
   const errorCount = rows?.filter((row) => row.status === 'error').length ?? 0;
@@ -169,28 +172,60 @@ export function ImportStudentsPanel() {
         }}
       />
 
-      {/* 操作区：选文件 / 下模板 */}
+      {/* 操作区：选文件 / 预览模板 */}
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={() => fileInputRef.current?.click()} disabled={importing}>
           <Upload className="h-4 w-4" />
           {rows ? '重新选择文件' : '选择 Excel 文件'}
         </Button>
-        <a
-          href="/学生导入模板.xlsx"
-          download
-          className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
+        <button
+          type="button"
+          onClick={() => setShowTemplate((v) => !v)}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+            showTemplate
+              ? 'border-brand-300 bg-brand-50 text-brand-700'
+              : 'border-ink-200 text-ink-600 hover:bg-ink-100 hover:text-ink-900',
+          )}
         >
-          <Download className="h-4 w-4" />
-          下载模板
-        </a>
+          <Eye className="h-4 w-4" />
+          {showTemplate ? '收起模板' : '预览模板'}
+        </button>
         {fileName && <span className="flex items-center gap-1.5 text-sm text-ink-500"><FileSpreadsheet className="h-4 w-4" />{fileName}</span>}
       </div>
 
-      {/* 格式说明 */}
-      {!rows && !parseError && (
+      {/* 模板在线预览 */}
+      {showTemplate && (
+        <div className="space-y-2">
+          <TemplatePreview
+            columns={['姓名', '学号', '邮箱', '初始密码', '初始积分', '角色']}
+            rows={[
+              ['李小明', 'S2024001', 'lixm@example.com', 'S123456', 10, ''],
+              ['王小红', 'S2024002', 'wangxh@example.com', '', '', ''],
+              ['张老师', 'T001', 'zhang@example.com', '', '', '教师'],
+            ]}
+            notes={[
+              '必填：姓名、邮箱（不能与已有账号重复）；其余选填。',
+              '初始密码留空将自动生成；初始积分留空按 0 处理；角色留空默认「学生」，教师填「教师」。',
+              '表头支持常见别名：名字/学生姓名、编号/学生编号、电子邮件/电子邮箱、密码、积分、身份。',
+            ]}
+          />
+          <a
+            href="/学生导入模板.xlsx"
+            download
+            className="inline-flex items-center gap-1 text-xs text-ink-400 underline-offset-4 transition-colors hover:text-ink-600 hover:underline"
+          >
+            <Download className="h-3 w-3" />
+            直接下载 .xlsx 模板文件
+          </a>
+        </div>
+      )}
+
+      {/* 格式说明（未展开模板时） */}
+      {!rows && !parseError && !showTemplate && (
         <div className="rounded-lg bg-ink-50 px-4 py-3 text-sm leading-relaxed text-ink-600">
           表头支持：<b>姓名</b>（必填）、<b>学号</b>、<b>邮箱</b>（必填，不能与已有账号重复）、<b>初始密码</b>（留空自动生成）、
-          <b>初始积分</b>（留空为 0）、<b>角色</b>（学生/教师，留空为学生）。点击「下载模板」可获取标准格式。
+          <b>初始积分</b>（留空为 0）、<b>角色</b>（学生/教师，留空为学生）。点击「预览模板」可直接查看标准格式与示例。
         </div>
       )}
 

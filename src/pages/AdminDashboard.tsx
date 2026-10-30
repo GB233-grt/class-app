@@ -1,35 +1,67 @@
 /**
- * 管理员仪表盘：统计概览 + 商品管理/学生管理/新建学生
+ * 管理员仪表盘：侧边栏导航（用户管理 / 商品与数据）+ 统计概览 + 面板
  */
-import { useState } from 'react';
-import { Boxes, Coins, Package, UserPlus, Users, type LucideIcon } from 'lucide-react';
-import { Header } from '../components/layout/Header';
-import { Footer } from '../components/layout/Footer';
+import { useMemo, useState } from 'react';
+import { Boxes, Coins, Package, UserPlus, Users } from 'lucide-react';
+import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
 import { ItemsPanel } from '../components/feature/admin/ItemsPanel';
 import { StudentsPanel } from '../components/feature/admin/StudentsPanel';
 import { CreateStudentPanel } from '../components/feature/admin/CreateStudentPanel';
 import { useStats } from '../hooks/useStats';
-import { cn, formatPoints } from '../lib/utils';
+import { useStudents } from '../hooks/useStudents';
+import { formatPoints } from '../lib/utils';
 
 type AdminTabKey = 'items' | 'students' | 'create';
 
-const TABS: { key: AdminTabKey; label: string; icon: LucideIcon }[] = [
-  { key: 'items', label: '商品管理', icon: Package },
-  { key: 'students', label: '学生管理', icon: Users },
-  { key: 'create', label: '新建用户', icon: UserPlus },
+const GROUPS: SidebarNavGroup[] = [
+  {
+    title: '用户管理',
+    items: [
+      { key: 'students', label: '学生管理', icon: Users },
+      { key: 'create', label: '新建用户', icon: UserPlus },
+    ],
+  },
+  {
+    title: '商品与数据',
+    items: [{ key: 'items', label: '商品管理', icon: Package }],
+  },
 ];
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTabKey>('items');
   const { stats, loading: statsLoading } = useStats();
+  const { students } = useStudents();
+
+  // 侧边栏「最近新增学生」：按创建时间倒序取前 4
+  const recentStudents = useMemo(
+    () => [...students].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 4),
+    [students],
+  );
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink-50">
-      {/* 深色顶部导航栏 */}
-      <Header variant="admin" />
-
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+    <SidebarLayout
+      groups={GROUPS}
+      activeKey={activeTab}
+      onNavigate={(key) => setActiveTab(key as AdminTabKey)}
+      feature={{
+        title: '商品目录',
+        description: statsLoading
+          ? '加载中…'
+          : `${stats?.item_count ?? 0} 件商品 · 总库存 ${formatPoints(stats?.total_stock ?? 0)}`,
+        cta: '管理商品',
+        onCta: () => setActiveTab('items'),
+      }}
+      history={{
+        title: '最近新增学生',
+        items: recentStudents.map((student) => ({
+          id: student.id,
+          text: student.student_no ? `${student.name}（${student.student_no}）` : student.name,
+        })),
+        onViewAll: () => setActiveTab('students'),
+      }}
+    >
+      <div className="space-y-6">
         {/* 统计概览卡片 */}
         <section className="grid gap-4 sm:grid-cols-3">
           <StatCard
@@ -55,33 +87,11 @@ export default function AdminDashboard() {
           />
         </section>
 
-        {/* 标签切换：圆角胶囊，激活态深色背景白色文字 */}
-        <nav className="inline-flex items-center gap-1 rounded-full bg-ink-100 p-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                activeTab === tab.key
-                  ? 'bg-ink-950 text-white shadow-sm'
-                  : 'text-ink-600 hover:text-ink-900',
-              )}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
         {/* 面板内容 */}
         {activeTab === 'items' && <ItemsPanel />}
         {activeTab === 'students' && <StudentsPanel />}
         {activeTab === 'create' && <CreateStudentPanel />}
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </SidebarLayout>
   );
 }

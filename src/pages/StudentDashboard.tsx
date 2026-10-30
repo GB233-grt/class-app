@@ -1,10 +1,9 @@
 /**
- * 学生仪表盘：积分卡片 + 统计数据 + 兑换商品/兑换记录/积分明细/排行榜
+ * 学生仪表盘：侧边栏导航（积分商店 / 我的记录）+ 积分卡片 + 统计 + 面板
  */
 import { useMemo, useState } from 'react';
-import { Coins, Gift, ReceiptText, ScrollText, ShoppingBag, Trophy, type LucideIcon } from 'lucide-react';
-import { Header } from '../components/layout/Header';
-import { Footer } from '../components/layout/Footer';
+import { Coins, Gift, ReceiptText, ScrollText, ShoppingBag, Trophy } from 'lucide-react';
+import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
 import { StorePanel } from '../components/feature/student/StorePanel';
 import { RedemptionsPanel } from '../components/feature/student/RedemptionsPanel';
@@ -12,15 +11,23 @@ import { LedgerPanel } from '../components/feature/student/LedgerPanel';
 import { LeaderboardPanel } from '../components/feature/student/LeaderboardPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useRedemptions } from '../hooks/useRedemptions';
-import { cn, formatPoints } from '../lib/utils';
+import { formatPoints } from '../lib/utils';
 
 type StudentTabKey = 'store' | 'history' | 'ledger' | 'leaderboard';
 
-const TABS: { key: StudentTabKey; label: string; icon: LucideIcon }[] = [
-  { key: 'store', label: '兑换商品', icon: ShoppingBag },
-  { key: 'history', label: '兑换记录', icon: ReceiptText },
-  { key: 'ledger', label: '积分明细', icon: ScrollText },
-  { key: 'leaderboard', label: '排行榜', icon: Trophy },
+const GROUPS: SidebarNavGroup[] = [
+  {
+    title: '积分商店',
+    items: [{ key: 'store', label: '兑换商品', icon: ShoppingBag }],
+  },
+  {
+    title: '我的记录',
+    items: [
+      { key: 'history', label: '兑换记录', icon: ReceiptText },
+      { key: 'ledger', label: '积分明细', icon: ScrollText },
+      { key: 'leaderboard', label: '排行榜', icon: Trophy },
+    ],
+  },
 ];
 
 export default function StudentDashboard() {
@@ -44,10 +51,26 @@ export default function StudentDashboard() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-ink-50">
-      <Header variant="student" />
-
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+    <SidebarLayout
+      groups={GROUPS}
+      activeKey={activeTab}
+      onNavigate={(key) => setActiveTab(key as StudentTabKey)}
+      feature={{
+        title: '积分排行榜',
+        description: '看看你在全校排第几名',
+        cta: '查看排行',
+        onCta: () => setActiveTab('leaderboard'),
+      }}
+      history={{
+        title: '最近兑换',
+        items: redemptions.slice(0, 4).map((record) => ({
+          id: record.id,
+          text: `${record.item_name}${(record.quantity ?? 1) > 1 ? ` ×${record.quantity}` : ''} · ${record.cost * (record.quantity ?? 1)} 积分`,
+        })),
+        onViewAll: () => setActiveTab('history'),
+      }}
+    >
+      <div className="space-y-6">
         {/* 积分卡片：深色渐变背景 */}
         <section className="animate-fade-up relative overflow-hidden rounded-xl bg-gradient-to-br from-ink-950 via-ink-900 to-brand-800 p-6 text-white shadow-soft sm:p-8">
           <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full bg-brand-500/20 blur-3xl" />
@@ -87,26 +110,6 @@ export default function StudentDashboard() {
           />
         </section>
 
-        {/* 标签切换 */}
-        <nav className="inline-flex items-center gap-1 rounded-full bg-ink-100 p-1">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors',
-                activeTab === tab.key
-                  ? 'bg-ink-950 text-white shadow-sm'
-                  : 'text-ink-600 hover:text-ink-900',
-              )}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
         {/* 面板内容 */}
         {activeTab === 'store' && <StorePanel onRedeemed={() => void refreshRedemptions()} />}
         {activeTab === 'history' && (
@@ -119,9 +122,7 @@ export default function StudentDashboard() {
         )}
         {activeTab === 'ledger' && <LedgerPanel />}
         {activeTab === 'leaderboard' && <LeaderboardPanel />}
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </SidebarLayout>
   );
 }

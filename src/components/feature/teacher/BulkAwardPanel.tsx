@@ -7,7 +7,7 @@
  * （判断值 90 分以上加 10 分，80 分以上加 5 分，其余不加）
  */
 import { useMemo, useRef, useState } from 'react';
-import { CheckCircle2, Download, FileSpreadsheet, Sigma, Upload, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleHelp, Download, Eye, FileSpreadsheet, Sigma, Upload, XCircle } from 'lucide-react';
 import { studentsApi } from '../../../api';
 import { useStudents } from '../../../hooks/useStudents';
 import { useToast } from '../../../hooks/useToast';
@@ -15,7 +15,9 @@ import { Button } from '../../common/Button';
 import { Card } from '../../common/Card';
 import { DataTable, type DataTableColumn } from '../../common/DataTable';
 import { Select } from '../../common/Select';
+import { TemplatePreview } from '../../common/TemplatePreview';
 import { ErrorNotice } from '../../common/States';
+import { FormulaHelpModal } from './FormulaHelp';
 import { Spinner } from '../../common/Spinner';
 import { POINT_REASONS } from '../../../lib/constants';
 import { cn, formatPoints, getErrorMessage } from '../../../lib/utils';
@@ -89,6 +91,8 @@ export function BulkAwardPanel() {
   const [fileRows, setFileRows] = useState<BulkAwardRow[] | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [showFormulaHelp, setShowFormulaHelp] = useState(false);
   /** 入账成功后的结果（按学生 ID），预览中展示「已加分」 */
   const [applied, setApplied] = useState<Map<string, { delta: number; balance_after: number }> | null>(null);
 
@@ -373,35 +377,20 @@ export function BulkAwardPanel() {
           )}
         />
         {formulaError && <p className="text-xs text-red-500">{formulaError}</p>}
-        <details className="rounded-lg bg-ink-50 px-4 py-3 text-xs leading-relaxed text-ink-600">
-          <summary className="cursor-pointer select-none font-medium text-ink-700">
-            公式说明（变量 / 运算符 / 示例）
-          </summary>
-          <div className="mt-2 space-y-1.5">
-            <p>
-              <b>变量</b>：<code className="font-mono">value</code> = 本行判断值（Excel 填入）·{' '}
-              <code className="font-mono">points</code> = 该学生当前积分余额
-            </p>
-            <p>
-              <b>运算符</b>：<code className="font-mono">+ - * / % ( )</code> ·{' '}
-              <b>比较</b>：<code className="font-mono">&gt;= &lt;= &gt; &lt; == !=</code> ·{' '}
-              <b>逻辑</b>：<code className="font-mono">&amp;&amp;</code>（且）{' '}
-              <code className="font-mono">||</code>（或）
-            </p>
-            <p>
-              <b>三元</b>：<code className="font-mono">条件 ? 值A : 值B</code>（可嵌套） · <b>函数</b>：
-              <code className="font-mono">min(a,b) max(a,b) floor(x) round(x) abs(x)</code>
-            </p>
-            <p>
-              <b>示例</b>（结果必须是整数，否则该行校验失败）：
-            </p>
-            <ul className="ml-4 list-disc space-y-0.5 font-mono">
-              <li>value &gt;= 90 ? 10 : value &gt;= 80 ? 5 : 0　—— 90 分以上加 10 分，80 分以上加 5 分，其余不加</li>
-              <li>floor(min(value / 10, 20))　—— 每 10 分加 1 分，上限 20 分</li>
-              <li>points &lt; 50 &amp;&amp; value &gt;= 60 ? 10 : 0　—— 余额不足 50 且判断值及格再加 10 分（定向激励）</li>
-            </ul>
-          </div>
-        </details>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setShowFormulaHelp(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-3 py-1.5 font-medium text-ink-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+          >
+            <CircleHelp className="h-3.5 w-3.5" />
+            判断公式入门（变量 / 运算 / 三元 / 函数 / 常用配方）
+          </button>
+          <span className="text-ink-400">
+            速记：<code className="font-mono text-ink-600">value</code> = 本行判断值 ·{' '}
+            <code className="font-mono text-ink-600">points</code> = 当前积分 · 结果须为整数
+          </span>
+        </div>
       </div>
 
       {/* 2. 上传 Excel */}
@@ -423,11 +412,16 @@ export function BulkAwardPanel() {
           </Button>
           <button
             type="button"
-            onClick={() => void downloadTemplate()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
+            onClick={() => setShowTemplate((v) => !v)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+              showTemplate
+                ? 'border-brand-300 bg-brand-50 text-brand-700'
+                : 'border-ink-200 text-ink-600 hover:bg-ink-100 hover:text-ink-900',
+            )}
           >
-            <Download className="h-4 w-4" />
-            下载模板
+            <Eye className="h-4 w-4" />
+            {showTemplate ? '收起模板' : '预览模板'}
           </button>
           {fileName && (
             <span className="flex items-center gap-1.5 text-sm text-ink-500">
@@ -437,11 +431,38 @@ export function BulkAwardPanel() {
           )}
         </div>
 
-        {!fileRows && !parseError && (
-          <div className="rounded-lg bg-ink-50 px-4 py-3 text-sm leading-relaxed text-ink-600">
-            模板列：<b>学号</b>（选填）、<b>姓名</b>（选填，学号与姓名至少填一项）、
-            <b>判断值</b>（必填，数字，如作业得分）。点击「下载模板」可获取标准格式。
+        {showTemplate ? (
+          <div className="space-y-2">
+            <TemplatePreview
+              columns={['学号', '姓名', '判断值（得分）']}
+              rows={[
+                ['S2024001', '张三', 95],
+                ['S2024002', '李四', 82],
+                ['', '王五', 71],
+              ]}
+              notes={[
+                '学号、姓名至少填一项（都填时优先按学号匹配）；判断值必填且为数字（如作业得分）。',
+                '判断值可以是任意数字：得分、次数、数量都行，公式决定它对应加多少分。',
+                '表头支持别名：编号/学生编号、名字/学生姓名、得分/分数/成绩/数量；每批最多 200 行。',
+              ]}
+            />
+            <button
+              type="button"
+              onClick={() => void downloadTemplate()}
+              className="inline-flex items-center gap-1 text-xs text-ink-400 underline-offset-4 transition-colors hover:text-ink-600 hover:underline"
+            >
+              <Download className="h-3 w-3" />
+              直接下载 .xlsx 模板文件
+            </button>
           </div>
+        ) : (
+          !fileRows &&
+          !parseError && (
+            <div className="rounded-lg bg-ink-50 px-4 py-3 text-sm leading-relaxed text-ink-600">
+              模板列：<b>学号</b>（选填）、<b>姓名</b>（选填，学号与姓名至少填一项）、
+              <b>判断值</b>（必填，数字，如作业得分）。点击「预览模板」可直接查看标准格式与示例。
+            </div>
+          )
         )}
 
         {parseError && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{parseError}</div>}
@@ -500,6 +521,9 @@ export function BulkAwardPanel() {
           )}
         </div>
       )}
+
+      {/* 判断公式入门（专门介绍） */}
+      {showFormulaHelp && <FormulaHelpModal onClose={() => setShowFormulaHelp(false)} />}
     </Card>
   );
 }
