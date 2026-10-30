@@ -17,7 +17,7 @@
  */
 
 /** 站点密钥（公开值）；留空 = 未启用，登录跳过人机校验 */
-export const TURNSTILE_SITE_KEY = '';
+export const TURNSTILE_SITE_KEY = '0x4AAAAAAFsbVGDUPSxgu-wN';
 
 /** Turnstile 挂件运行时句柄（显式渲染模式） */
 export interface TurnstileHandle {
