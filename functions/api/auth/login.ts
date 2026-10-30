@@ -41,7 +41,7 @@ async function verifyTurnstile(env: Env, request: Request, token: string | null)
 
   let result: { success?: boolean };
   try {
-    const verify = await fetch('https://challenges.cloudflare.com/siteverify', {
+    const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: form.toString(),
