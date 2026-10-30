@@ -17,7 +17,8 @@
  */
 
 /** 站点密钥（公开值）；留空 = 未启用，登录跳过人机校验 */
-export const TURNSTILE_SITE_KEY = '0x4AAAAAAFsbVGDUPSxgu-wN';
+// 显式标注 string 类型：留空判断（!== ''）在启用/未启用两种取值下都类型安全
+export const TURNSTILE_SITE_KEY: string = '0x4AAAAAAFsbVGDUPSxgu-wN';
 
 /** Turnstile 挂件运行时句柄（显式渲染模式） */
 export interface TurnstileHandle {
