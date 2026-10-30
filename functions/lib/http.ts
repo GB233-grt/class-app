@@ -95,5 +95,8 @@ export function translateDbError(message: string): string {
   if (message.includes('violates check constraint')) {
     return '数据未通过字段校验，请确认已在 Supabase 执行最新的数据库升级脚本（migrations/07_teacher_and_fulfillment.sql）';
   }
+  if (message.includes('adjust_student_points_batch') && message.includes('does not exist')) {
+    return '数据库尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/08_batch_points_adjust.sql 后重试';
+  }
   return message || '操作失败，请稍后重试';
 }

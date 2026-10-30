@@ -3,6 +3,8 @@
  */
 import { api } from './client';
 import type {
+  AwardBatchPayload,
+  AwardBatchResponse,
   AwardPayload,
   AwardResponse,
   CreateItemPayload,
@@ -63,6 +65,8 @@ export const studentsApi = {
   create: (payload: CreateStudentPayload) => api.post<Student>('/students', payload),
   /** 积分增减（教师/管理员） */
   award: (payload: AwardPayload) => api.post<AwardResponse>('/students/award', payload),
+  /** 批量加分（教师/管理员）：判断公式 + Excel 判断值，服务端重算后单事务入账 */
+  awardBatch: (payload: AwardBatchPayload) => api.post<AwardBatchResponse>('/students/award-batch', payload),
 };
 
 /** 物品兑换 */

@@ -104,6 +104,30 @@ export interface AwardPayload {
   reason: string;
 }
 
+/** 批量加分请求体（判断公式 + 每行判断值） */
+export interface AwardBatchPayload {
+  /** 判断公式，如 `value >= 90 ? 10 : value >= 80 ? 5 : 0` */
+  expression: string;
+  reason: string;
+  rows: { student_id: string; value: number }[];
+}
+
+/** 批量加分单学生结果 */
+export interface AwardBatchResultItem {
+  student_id: string;
+  delta: number;
+  balance_after: number;
+}
+
+/** 批量加分响应 */
+export interface AwardBatchResponse {
+  awarded: number;
+  reason: string;
+  results: AwardBatchResultItem[];
+  /** 公式结果为 0、未变更的学生 */
+  skipped: { student_id: string; message: string }[];
+}
+
 /** 兑换成功响应 */
 export interface RedeemResponse {
   message: string;

@@ -1,20 +1,22 @@
 /**
- * 教师仪表盘：兑换发放确认 + 学生加分
+ * 教师仪表盘：兑换发放确认 + 学生加分 + Excel 批量加分
  */
 import { useState } from 'react';
-import { Award, ClipboardList, GraduationCap, type LucideIcon } from 'lucide-react';
+import { Award, ClipboardList, FileSpreadsheet, GraduationCap, type LucideIcon } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { FulfillmentPanel } from '../components/feature/teacher/FulfillmentPanel';
 import { AwardPointsPanel } from '../components/feature/teacher/AwardPointsPanel';
+import { BulkAwardPanel } from '../components/feature/teacher/BulkAwardPanel';
 import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
 
-type TeacherTabKey = 'fulfillment' | 'award';
+type TeacherTabKey = 'fulfillment' | 'award' | 'bulk-award';
 
 const TABS: { key: TeacherTabKey; label: string; icon: LucideIcon }[] = [
   { key: 'fulfillment', label: '兑换发放', icon: ClipboardList },
   { key: 'award', label: '学生加分', icon: Award },
+  { key: 'bulk-award', label: '批量加分', icon: FileSpreadsheet },
 ];
 
 export default function TeacherDashboard() {
@@ -69,6 +71,7 @@ export default function TeacherDashboard() {
         {/* 面板内容 */}
         {activeTab === 'fulfillment' && <FulfillmentPanel />}
         {activeTab === 'award' && <AwardPointsPanel />}
+        {activeTab === 'bulk-award' && <BulkAwardPanel />}
       </main>
 
       <Footer />

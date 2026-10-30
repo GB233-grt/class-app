@@ -5,6 +5,9 @@
  * 模板列（表头支持以下别名，顺序不限）：
  *   姓名（必填）、学号（选填）、邮箱（必填，唯一）、初始密码（选填，留空自动生成）、
  *   初始积分（选填，默认 0）、角色（选填：学生/教师，默认 学生）
+ *
+ * 批量加分模板（parseBulkAwardWorkbook）：
+ *   学号（选填）/ 姓名（选填，两者至少填一项）、判断值（必填，数字，如作业得分）
  */
 export type ImportRole = 'student' | 'teacher';
 
@@ -204,6 +207,129 @@ export async function parseStudentWorkbook(
       status: 'ready',
       message: generated ? '密码为自动生成' : '',
     });
+  });
+
+  return { rows, sheetName, total: records.length };
+}
+
+// ============================================================
+// 批量加分（教师）：解析工作簿 → 表头别名映射 → 逐行校验
+// 模板列：学号（选填）/ 姓名（选填，两者至少填一项）、判断值（必填，数字）
+// ============================================================
+
+export interface BulkAwardRow {
+  /** Excel 数据行号（表头为第 1 行，数据从 2 开始） */
+  index: number;
+  student_no: string;
+  name: string;
+  /** 判断值（如作业得分）；null 表示本行格式无效（见 message） */
+  value: number | null;
+  status: 'ready' | 'error';
+  message: string;
+}
+
+/** 批量加分表头别名 → 字段（键为归一化后的表头） */
+const BULK_AWARD_ALIASES: Record<string, 'student_no' | 'name' | 'value'> = {
+  学号: 'student_no',
+  编号: 'student_no',
+  学生编号: 'student_no',
+  studentno: 'student_no',
+  student_no: 'student_no',
+  姓名: 'name',
+  名字: 'name',
+  学生姓名: 'name',
+  name: 'name',
+  判断值: 'value',
+  得分: 'value',
+  分数: 'value',
+  成绩: 'value',
+  数量: 'value',
+  value: 'value',
+  score: 'value',
+};
+
+/**
+ * 解析批量加分表格
+ * @param file 用户选择的 .xlsx / .xls / .csv 文件
+ */
+export async function parseBulkAwardWorkbook(
+  file: File,
+): Promise<{ rows: BulkAwardRow[]; sheetName: string; total: number }> {
+  const XLSX = await import('xlsx');
+
+  let workbook: WorkBook;
+  try {
+    workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+  } catch {
+    throw new Error('无法读取该文件，请使用 .xlsx / .xls / .csv 格式');
+  }
+
+  // 取第一个有数据的工作表
+  let records: Record<string, unknown>[] = [];
+  let sheetName = '';
+  for (const name of workbook.SheetNames) {
+    const sheetRecords = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[name], {
+      defval: '',
+    });
+    if (sheetRecords.length > 0) {
+      records = sheetRecords;
+      sheetName = name;
+      break;
+    }
+  }
+  if (records.length === 0) {
+    throw new Error('表格中没有数据行。第 1 行需为表头（学号/姓名/判断值），数据从第 2 行开始');
+  }
+
+  const rows: BulkAwardRow[] = [];
+  const seen = new Set<string>();
+
+  records.forEach((raw, i) => {
+    const index = i + 2; // 表头占第 1 行
+    const picked: { student_no: string; name: string; value: string } = {
+      student_no: '',
+      name: '',
+      value: '',
+    };
+    for (const [key, value] of Object.entries(raw)) {
+      const field = BULK_AWARD_ALIASES[normalizeHeader(key)];
+      if (field) {
+        picked[field] = String(value ?? '').trim();
+      }
+    }
+
+    const base = { index, student_no: picked.student_no, name: picked.name };
+
+    if (!picked.student_no && !picked.name) {
+      rows.push({ ...base, value: null, status: 'error', message: '学号与姓名至少填写一项' });
+      return;
+    }
+    if (picked.student_no.length > 20) {
+      rows.push({ ...base, value: null, status: 'error', message: '学号不能超过 20 个字' });
+      return;
+    }
+    if (picked.name.length > 20) {
+      rows.push({ ...base, value: null, status: 'error', message: '姓名不能超过 20 个字' });
+      return;
+    }
+    if (picked.value === '') {
+      rows.push({ ...base, value: null, status: 'error', message: '缺少判断值' });
+      return;
+    }
+    const value = Number(picked.value);
+    if (!Number.isFinite(value) || Math.abs(value) > 1e9) {
+      rows.push({ ...base, value: null, status: 'error', message: '判断值必须是有效数字' });
+      return;
+    }
+    // 重复检查：按学号（无学号则按姓名）去重
+    const dedupeKey = (picked.student_no || picked.name).toLowerCase();
+    if (seen.has(dedupeKey)) {
+      rows.push({ ...base, value, status: 'error', message: '在本表格中重复出现' });
+      return;
+    }
+    seen.add(dedupeKey);
+
+    rows.push({ ...base, value, status: 'ready', message: '' });
   });
 
   return { rows, sheetName, total: records.length };

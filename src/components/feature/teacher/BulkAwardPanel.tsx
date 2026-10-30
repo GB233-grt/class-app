@@ -1,0 +1,505 @@
+/**
+ * 批量加分面板（教师）：
+ * 填写判断公式（页面，实时校验）→ 上传含判断值的 Excel（学号/姓名 + 判断值）
+ * → 逐行预览加分结果 → 确认后单事务批量入账
+ *
+ * 公式示例：value >= 90 ? 10 : value >= 80 ? 5 : 0
+ * （判断值 90 分以上加 10 分，80 分以上加 5 分，其余不加）
+ */
+import { useMemo, useRef, useState } from 'react';
+import { CheckCircle2, Download, FileSpreadsheet, Sigma, Upload, XCircle } from 'lucide-react';
+import { studentsApi } from '../../../api';
+import { useStudents } from '../../../hooks/useStudents';
+import { useToast } from '../../../hooks/useToast';
+import { Button } from '../../common/Button';
+import { Card } from '../../common/Card';
+import { DataTable, type DataTableColumn } from '../../common/DataTable';
+import { Select } from '../../common/Select';
+import { ErrorNotice } from '../../common/States';
+import { Spinner } from '../../common/Spinner';
+import { POINT_REASONS } from '../../../lib/constants';
+import { cn, formatPoints, getErrorMessage } from '../../../lib/utils';
+import { parseBulkAwardWorkbook, type BulkAwardRow } from '../../../lib/excelImport';
+import {
+  compileJudgeFormula,
+  JUDGE_FORMULA_EXAMPLE,
+  JudgeFormulaError,
+  type CompiledJudgeFormula,
+} from '../../../lib/judgeFormula';
+import type { Student } from '../../../types';
+
+/** 单行加分上限（与后端一致） */
+const MAX_DELTA = 100000;
+
+/** 预览行状态 */
+type PreviewStatus = 'ready' | 'skipped' | 'error' | 'waiting' | 'done';
+
+/** 逐行预览结果 */
+interface PreviewRow {
+  index: number;
+  student: Student | null;
+  student_no: string;
+  name: string;
+  value: number | null;
+  /** 加分值（可计算且合法时非 null） */
+  delta: number | null;
+  status: PreviewStatus;
+  message: string;
+}
+
+const STATUS_MAP: Record<PreviewStatus, { text: string; className: string }> = {
+  ready: { text: '待入账', className: 'bg-ink-100 text-ink-600' },
+  skipped: { text: '0 分 · 不变更', className: 'bg-ink-50 text-ink-400' },
+  error: { text: '校验失败', className: 'bg-red-50 text-red-600' },
+  waiting: { text: '等待公式', className: 'bg-amber-50 text-amber-700' },
+  done: { text: '已加分', className: 'bg-green-50 text-green-700' },
+};
+
+/** 按学号（优先）→ 姓名 匹配学生 */
+function matchStudent(
+  students: Student[],
+  row: BulkAwardRow,
+): { student: Student | null; message: string } {
+  if (row.student_no) {
+    const byNo = students.filter(
+      (s) => (s.student_no ?? '').trim().toLowerCase() === row.student_no.toLowerCase(),
+    );
+    if (byNo.length === 1) return { student: byNo[0], message: '' };
+    if (byNo.length > 1) return { student: null, message: '该学号对应多名学生，请联系管理员核对' };
+  }
+  const byName = students.filter((s) => s.name.trim().toLowerCase() === row.name.trim().toLowerCase());
+  if (byName.length === 1) return { student: byName[0], message: '' };
+  if (byName.length > 1) {
+    return { student: null, message: `有 ${byName.length} 名学生同名「${row.name}」，请在 Excel 中填写学号` };
+  }
+  return {
+    student: null,
+    message: row.student_no ? '未找到该学号的学生' : '未找到该姓名的学生',
+  };
+}
+
+export function BulkAwardPanel() {
+  const { showToast } = useToast();
+  const { students, loading, error, refresh } = useStudents();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [expression, setExpression] = useState('');
+  const [reason, setReason] = useState<string>(POINT_REASONS[0]);
+  const [fileName, setFileName] = useState('');
+  const [fileRows, setFileRows] = useState<BulkAwardRow[] | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  /** 入账成功后的结果（按学生 ID），预览中展示「已加分」 */
+  const [applied, setApplied] = useState<Map<string, { delta: number; balance_after: number }> | null>(null);
+
+  // 编译判断公式（实时校验；公式为空视为未填写）
+  const { formula, formulaError } = useMemo<{
+    formula: CompiledJudgeFormula | null;
+    formulaError: string | null;
+  }>(() => {
+    if (expression.trim() === '') return { formula: null, formulaError: null };
+    try {
+      return { formula: compileJudgeFormula(expression), formulaError: null };
+    } catch (err) {
+      return {
+        formula: null,
+        formulaError: err instanceof JudgeFormulaError ? err.message : '公式格式错误',
+      };
+    }
+  }, [expression]);
+
+  // 预览：匹配学生 + 逐行重算加分（与后端同一引擎；最终以服务端重算为准）
+  const preview = useMemo<PreviewRow[]>(() => {
+    if (!fileRows) return [];
+    return fileRows.map((row) => {
+      const base = { index: row.index, student_no: row.student_no, name: row.name, value: row.value };
+      if (row.status === 'error') {
+        return { ...base, student: null, delta: null, status: 'error' as const, message: row.message };
+      }
+      const { student, message } = matchStudent(students, row);
+      if (!student) {
+        return { ...base, student: null, delta: null, status: 'error' as const, message };
+      }
+      if (student.role !== 'student') {
+        return { ...base, student, delta: null, status: 'error' as const, message: '教师/管理员不能被加分' };
+      }
+      const appliedRow = applied?.get(student.id);
+      if (appliedRow) {
+        return {
+          ...base,
+          student,
+          delta: appliedRow.delta,
+          status: 'done' as const,
+          message: `已加分，当前余额 ${appliedRow.balance_after}`,
+        };
+      }
+      if (!formula) {
+        return {
+          ...base,
+          student,
+          delta: null,
+          status: 'waiting' as const,
+          message: '填写有效的判断公式后预览加分结果',
+        };
+      }
+      let result: number;
+      try {
+        result = formula({ value: row.value as number, points: student.points });
+      } catch (err) {
+        return {
+          ...base,
+          student,
+          delta: null,
+          status: 'error' as const,
+          message: err instanceof JudgeFormulaError ? err.message : '公式计算失败',
+        };
+      }
+      if (!Number.isFinite(result)) {
+        return { ...base, student, delta: null, status: 'error' as const, message: '公式结果不是有效数字（可能存在除以零）' };
+      }
+      if (!Number.isInteger(result)) {
+        return {
+          ...base,
+          student,
+          delta: null,
+          status: 'error' as const,
+          message: `公式结果 ${result} 不是整数，可用 floor/round 取整`,
+        };
+      }
+      if (result < 0) {
+        return { ...base, student, delta: null, status: 'error' as const, message: '批量加分仅支持加分，结果不能为负' };
+      }
+      if (result > MAX_DELTA) {
+        return { ...base, student, delta: null, status: 'error' as const, message: `加分值不能超过 ${MAX_DELTA}` };
+      }
+      if (result === 0) {
+        return { ...base, student, delta: 0, status: 'skipped' as const, message: '公式结果为 0 分，不变更' };
+      }
+      return { ...base, student, delta: result, status: 'ready' as const, message: '' };
+    });
+  }, [fileRows, students, formula, applied]);
+
+  const stats = useMemo(() => {
+    const ready = preview.filter((p) => p.status === 'ready');
+    return {
+      readyCount: ready.length,
+      skippedCount: preview.filter((p) => p.status === 'skipped').length,
+      errorCount: preview.filter((p) => p.status === 'error').length,
+      doneCount: preview.filter((p) => p.status === 'done').length,
+      totalDelta: ready.reduce((sum, p) => sum + (p.delta ?? 0), 0),
+    };
+  }, [preview]);
+
+  const canSubmit =
+    formula !== null &&
+    formulaError === null &&
+    !loading &&
+    !submitting &&
+    applied === null &&
+    stats.readyCount > 0;
+
+  // 选择文件：解析 + 逐行校验
+  const handleFile = async (file: File) => {
+    setFileName(file.name);
+    setParseError(null);
+    setApplied(null);
+    try {
+      const { rows } = await parseBulkAwardWorkbook(file);
+      setFileRows(rows);
+    } catch (err) {
+      setFileRows(null);
+      setParseError(getErrorMessage(err, '解析文件失败'));
+    }
+  };
+
+  const resetFile = () => {
+    setFileRows(null);
+    setFileName('');
+    setParseError(null);
+    setApplied(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // 客户端生成标准模板（学号 + 姓名 + 判断值）
+  const downloadTemplate = async () => {
+    const XLSX = await import('xlsx');
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['学号', '姓名', '判断值（得分）'],
+      ['S2024001', '张三', 95],
+      ['S2024002', '李四', 82],
+      ['S2024003', '王五', 71],
+    ]);
+    ws['!cols'] = [{ wch: 14 }, { wch: 12 }, { wch: 18 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '批量加分');
+    XLSX.writeFile(wb, '批量加分模板.xlsx');
+  };
+
+  // 确认批量加分：服务端重新计算每行结果并单事务入账
+  const onSubmit = async () => {
+    if (!formula || !fileRows) return;
+    const ready = preview.filter((p) => p.status === 'ready' && p.student !== null);
+    if (ready.length === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await studentsApi.awardBatch({
+        expression: expression.trim(),
+        reason,
+        rows: ready.map((p) => ({ student_id: p.student!.id, value: p.value as number })),
+      });
+      const map = new Map<string, { delta: number; balance_after: number }>();
+      for (const item of res.results) {
+        map.set(item.student_id, { delta: item.delta, balance_after: item.balance_after });
+      }
+      setApplied(map);
+      await refresh();
+      const total = res.results.reduce((sum, r) => sum + r.delta, 0);
+      showToast('success', `批量加分完成：${res.awarded} 名学生共增加 ${formatPoints(total)} 积分`);
+    } catch (err) {
+      showToast('error', getErrorMessage(err, '批量加分失败'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center rounded-xl border border-ink-100 bg-white py-16">
+        <Spinner />
+      </div>
+    );
+  }
+  if (error) {
+    return <ErrorNotice message={error} onRetry={() => void refresh()} />;
+  }
+
+  const columns: DataTableColumn<PreviewRow>[] = [
+    { header: '行号', render: (row) => <span className="text-ink-400">第 {row.index} 行</span> },
+    {
+      header: '学生',
+      render: (row) => (
+        <span className="font-medium text-ink-900">{row.student?.name ?? row.name ?? '—'}</span>
+      ),
+    },
+    { header: '学号', render: (row) => <span className="text-ink-500">{row.student_no || '—'}</span> },
+    { header: '判断值', render: (row) => <span className="text-ink-700">{row.value ?? '—'}</span> },
+    {
+      header: '加分',
+      render: (row) =>
+        row.status === 'ready' || row.status === 'done' ? (
+          <span className="font-semibold text-brand-600">+{row.delta}</span>
+        ) : row.status === 'skipped' ? (
+          <span className="text-ink-400">0</span>
+        ) : (
+          <span className="text-ink-300">—</span>
+        ),
+    },
+    {
+      header: '当前积分',
+      render: (row) => <span className="text-ink-500">{row.student ? row.student.points : '—'}</span>,
+    },
+    {
+      header: '预计余额',
+      render: (row) => {
+        if (row.status === 'done') {
+          const appliedRow = row.student ? applied?.get(row.student.id) : undefined;
+          return <span className="font-semibold text-green-700">{appliedRow?.balance_after ?? '—'}</span>;
+        }
+        if (!row.student || row.delta === null) return <span className="text-ink-300">—</span>;
+        return <span className="font-medium text-ink-900">{row.student.points + row.delta}</span>;
+      },
+    },
+    {
+      header: '状态',
+      render: (row) => {
+        const badge = STATUS_MAP[row.status];
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span
+              className={cn(
+                'inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                badge.className,
+              )}
+            >
+              {row.status === 'done' && <CheckCircle2 className="h-3 w-3" />}
+              {row.status === 'error' && <XCircle className="h-3 w-3" />}
+              {badge.text}
+            </span>
+            {row.message && (
+              <span className={cn('text-xs', row.status === 'error' ? 'text-red-500' : 'text-ink-400')}>
+                {row.message}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
+  return (
+    <Card className="animate-fade-up mx-auto max-w-5xl p-6">
+      <h2 className="mb-1 flex items-center gap-2 font-display text-lg font-bold text-ink-900">
+        <Sigma className="h-5 w-5 text-brand-500" />
+        批量加分（Excel）
+      </h2>
+      <p className="mb-5 text-sm text-ink-500">
+        上传带「判断值」（如作业得分）的名单，用判断公式决定每行加多少分；预览确认后一次性入账，全部计入积分明细。
+      </p>
+
+      {/* 1. 判断公式 */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label htmlFor="judge-formula" className="text-sm font-medium text-ink-700">
+            判断公式
+          </label>
+          {expression.trim() !== '' &&
+            (formulaError ? (
+              <span className="text-xs font-medium text-red-500">公式有误</span>
+            ) : (
+              <span className="text-xs font-medium text-green-600">✓ 公式有效</span>
+            ))}
+        </div>
+        <textarea
+          id="judge-formula"
+          rows={2}
+          value={expression}
+          onChange={(event) => setExpression(event.target.value)}
+          placeholder={JUDGE_FORMULA_EXAMPLE}
+          spellCheck={false}
+          className={cn(
+            'w-full resize-y rounded-lg border bg-white px-3 py-2.5 font-mono text-sm text-ink-900 outline-none transition',
+            'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20',
+            formulaError ? 'border-red-400 focus:ring-red-400/20' : 'border-ink-200',
+          )}
+        />
+        {formulaError && <p className="text-xs text-red-500">{formulaError}</p>}
+        <details className="rounded-lg bg-ink-50 px-4 py-3 text-xs leading-relaxed text-ink-600">
+          <summary className="cursor-pointer select-none font-medium text-ink-700">
+            公式说明（变量 / 运算符 / 示例）
+          </summary>
+          <div className="mt-2 space-y-1.5">
+            <p>
+              <b>变量</b>：<code className="font-mono">value</code> = 本行判断值（Excel 填入）·{' '}
+              <code className="font-mono">points</code> = 该学生当前积分余额
+            </p>
+            <p>
+              <b>运算符</b>：<code className="font-mono">+ - * / % ( )</code> ·{' '}
+              <b>比较</b>：<code className="font-mono">&gt;= &lt;= &gt; &lt; == !=</code> ·{' '}
+              <b>逻辑</b>：<code className="font-mono">&amp;&amp;</code>（且）{' '}
+              <code className="font-mono">||</code>（或）
+            </p>
+            <p>
+              <b>三元</b>：<code className="font-mono">条件 ? 值A : 值B</code>（可嵌套） · <b>函数</b>：
+              <code className="font-mono">min(a,b) max(a,b) floor(x) round(x) abs(x)</code>
+            </p>
+            <p>
+              <b>示例</b>（结果必须是整数，否则该行校验失败）：
+            </p>
+            <ul className="ml-4 list-disc space-y-0.5 font-mono">
+              <li>value &gt;= 90 ? 10 : value &gt;= 80 ? 5 : 0　—— 90 分以上加 10 分，80 分以上加 5 分，其余不加</li>
+              <li>floor(min(value / 10, 20))　—— 每 10 分加 1 分，上限 20 分</li>
+              <li>points &lt; 50 &amp;&amp; value &gt;= 60 ? 10 : 0　—— 余额不足 50 且判断值及格再加 10 分（定向激励）</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      {/* 2. 上传 Excel */}
+      <div className="mt-5 space-y-3">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void handleFile(file);
+          }}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={() => fileInputRef.current?.click()} disabled={submitting}>
+            <Upload className="h-4 w-4" />
+            {fileRows ? '重新选择文件' : '选择 Excel 文件'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => void downloadTemplate()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
+          >
+            <Download className="h-4 w-4" />
+            下载模板
+          </button>
+          {fileName && (
+            <span className="flex items-center gap-1.5 text-sm text-ink-500">
+              <FileSpreadsheet className="h-4 w-4" />
+              {fileName}
+            </span>
+          )}
+        </div>
+
+        {!fileRows && !parseError && (
+          <div className="rounded-lg bg-ink-50 px-4 py-3 text-sm leading-relaxed text-ink-600">
+            模板列：<b>学号</b>（选填）、<b>姓名</b>（选填，学号与姓名至少填一项）、
+            <b>判断值</b>（必填，数字，如作业得分）。点击「下载模板」可获取标准格式。
+          </div>
+        )}
+
+        {parseError && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{parseError}</div>}
+      </div>
+
+      {/* 3. 预览 */}
+      {fileRows && (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-600">
+              共 <b>{fileRows.length}</b> 行 · 待入账 <b className="text-brand-600">{stats.readyCount}</b> 行
+              {stats.skippedCount > 0 && <> · 0 分不变更 <b>{stats.skippedCount}</b> 行</>}
+              {stats.errorCount > 0 && <> · 校验失败 <b className="text-red-500">{stats.errorCount}</b> 行</>}
+              {stats.doneCount > 0 && <> · 已入账 <b className="text-green-600">{stats.doneCount}</b> 行</>}
+              {stats.readyCount > 0 && <> · 合计加 <b className="text-brand-600">{formatPoints(stats.totalDelta)}</b> 分</>}
+            </p>
+            <Button variant="ghost" size="sm" onClick={resetFile} disabled={submitting}>
+              清空
+            </Button>
+          </div>
+
+          <DataTable columns={columns} rows={preview} rowKey={(row) => String(row.index)} />
+
+          {applied && (
+            <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+              ✓ 本批 {stats.doneCount} 名学生已入账。继续处理新名单请「重新选择文件」；公式与原因已保留。
+            </p>
+          )}
+          {!applied && stats.readyCount > 0 && formulaError !== null && (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              修正上方判断公式后，预览与确认会自动恢复。
+            </p>
+          )}
+          {!applied && stats.readyCount === 0 && (
+            <p className="text-sm text-ink-400">
+              暂无可入账的行。请填写有效的判断公式并核对错误行的提示后重试。
+            </p>
+          )}
+
+          {/* 4. 原因 + 确认 */}
+          {!applied && (
+            <div className="flex flex-wrap items-end justify-between gap-3 border-t border-ink-100 pt-4">
+              <div className="w-full sm:w-64">
+                <Select label="变动原因" value={reason} onChange={(event) => setReason(event.target.value)}>
+                  {POINT_REASONS.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <Button onClick={() => void onSubmit()} loading={submitting} disabled={!canSubmit}>
+                确认批量加分（{stats.readyCount} 人，共 {formatPoints(stats.totalDelta)} 分）
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}

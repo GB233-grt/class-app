@@ -33,6 +33,10 @@ export const PROJECT_AUTHOR = 'GB233-grt(高兰圯)';
 /** 页脚「系统消息」公告（新的放在前面即可） */
 export const SYSTEM_MESSAGES: readonly { title: string; detail: string }[] = [
   {
+    title: 'Excel 批量加分已上线',
+    detail: '教师可在「教师工作台 → 批量加分」上传带判断值的 Excel，用自定义判断公式（如 score>=90 ? 10 : 0）逐行计算加分，预览确认后一次性入账。',
+  },
+  {
     title: '教师工作台已上线',
     detail: '教师可确认兑换发放、给学生加减积分；学生兑换的物品需线下向教师领取。',
   },
@@ -62,6 +66,7 @@ export const USAGE_GUIDE: readonly { role: string; points: readonly string[] }[]
       '登录后自动进入教师工作台',
       '「兑换发放」：核对学生后当面发放物品，点击「标记已发放」；误操作可「撤回」（不退积分）',
       '「学生加分」：输入姓名或学号搜索学生，快速加减积分并选择原因',
+      '「批量加分」：上传带判断值的 Excel，写一个判断公式（如 value >= 90 ? 10 : 0）决定每行加多少分，预览后一键入账',
     ],
   },
   {
