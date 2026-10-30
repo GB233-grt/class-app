@@ -21,8 +21,8 @@ interface AuthContextValue {
   profile: Student | null;
   /** 首次会话探测是否进行中 */
   initializing: boolean;
-  /** 邮箱密码登录 */
-  login: (email: string, password: string) => Promise<void>;
+  /** 邮箱密码登录（turnstileToken 为 Cloudflare 人机验证令牌，启用时必传） */
+  login: (email: string, password: string, turnstileToken?: string) => Promise<void>;
   /** 登出 */
   logout: () => Promise<void>;
   /** 发送密码重置邮件 */
@@ -69,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      const result = await authApi.login(email, password);
+    async (email: string, password: string, turnstileToken?: string) => {
+      const result = await authApi.login(email, password, turnstileToken);
       if (!result?.access_token || !result?.refresh_token) {
         throw new Error('登录失败：服务器未返回有效会话');
       }

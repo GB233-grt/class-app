@@ -1,7 +1,7 @@
 /**
  * 登录页：左右分栏（桌面端左侧品牌展示区 + 右侧登录表单）
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BarChart3, Coins, GraduationCap, Info, ShoppingBag, type LucideIcon } from 'lucide-react';
@@ -9,7 +9,9 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import { Turnstile, type TurnstileRef } from '../components/feature/auth/Turnstile';
 import { DEMO_ACCOUNTS } from '../lib/constants';
+import { TURNSTILE_SITE_KEY } from '../lib/turnstile';
 import { loginSchema, type LoginValues } from '../lib/validation';
 import { getErrorMessage } from '../lib/utils';
 
@@ -24,6 +26,10 @@ export default function LoginPage() {
   const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  // Cloudflare Turnstile 人机验证
+  const turnstileRef = useRef<TurnstileRef>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileEnabled = TURNSTILE_SITE_KEY !== '';
 
   const {
     register,
@@ -35,13 +41,21 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
-  // 登录（Supabase Auth 邮箱密码）
+  // 登录（Supabase Auth 邮箱密码 + Turnstile 人机校验）
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    // 已配置站点密钥时，必须先完成人机验证
+    if (turnstileEnabled && !captchaToken) {
+      setError('请先完成下方的人机验证');
+      return;
+    }
     try {
-      await login(values.email, values.password);
+      await login(values.email, values.password, captchaToken ?? undefined);
     } catch (err) {
       setError(getErrorMessage(err, '登录失败，请稍后重试'));
+      // 登录失败后重置验证码：token 一次性使用，需让用户重新验证
+      turnstileRef.current?.reset();
+      setCaptchaToken(null);
     }
   });
 
@@ -154,6 +168,19 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* Cloudflare Turnstile 人机验证（仅在配置站点密钥后渲染） */}
+            {turnstileEnabled && (
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  onToken={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken(null)}
+                  onError={() => setError('人机验证组件加载失败，请检查网络后刷新页面')}
+                />
+              </div>
+            )}
+
             <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>
               登录
             </Button>

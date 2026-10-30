@@ -11,6 +11,8 @@ export interface Env {
   SUPABASE_ANON_KEY: string;
   /** Supabase 服务角色密钥（管理操作使用，务必配置为 Secret） */
   SUPABASE_SERVICE_ROLE_KEY: string;
+  /** Cloudflare Turnstile 服务端验证密钥（可选，配置后登录强制人机校验） */
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 /** 学生表行结构（角色：学生 / 教师 / 管理员） */

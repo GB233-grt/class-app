@@ -30,9 +30,9 @@ export interface LoginResponse {
 export const authApi = {
   /** 获取当前登录用户资料 */
   me: () => api.get<Student>('/auth/me'),
-  /** 邮箱密码登录 */
-  login: (email: string, password: string) =>
-    api.post<LoginResponse>('/auth/login', { email, password }),
+  /** 邮箱密码登录（turnstileToken 为 Cloudflare 人机验证令牌，启用时必传） */
+  login: (email: string, password: string, turnstileToken?: string) =>
+    api.post<LoginResponse>('/auth/login', { email, password, cf_turnstile_token: turnstileToken }),
   /** 登出（服务端吊销令牌 + 前端清除本地会话） */
   logout: () => api.post<{ success: boolean }>('/auth/logout'),
   /** 发送密码重置邮件 */
