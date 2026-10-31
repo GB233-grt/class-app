@@ -98,7 +98,7 @@ function SidebarContent({
     'rounded-lg p-2 text-white/50 transition-colors hover:bg-white/10 hover:text-white';
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       {/* 顶部：Logo + 品牌名 + 收起/关闭按钮 */}
       <div
         className={cn(
@@ -137,7 +137,7 @@ function SidebarContent({
         </button>
       </div>
 
-      {/* 功能导航列表 */}
+      {/* 导航区：功能导航列表 + 特色功能区 + 最近记录区（整体可滚动） */}
       <nav className={cn('flex-1 overflow-y-auto py-3', collapsed ? 'px-2' : 'px-3')}>
         {groups.map((group, groupIndex) => (
           <div key={group.title ?? `group-${groupIndex}`} className="mb-4">
@@ -175,71 +175,71 @@ function SidebarContent({
             </ul>
           </div>
         ))}
-      </nav>
 
-      {/* 特色功能区：卡片 + 胶囊 CTA */}
-      {!collapsed && (
-        <div className="px-3 pb-4">
-          <div className="rounded-xl border border-ink-100 bg-gradient-to-br from-ink-50 to-white p-3.5 shadow-soft">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-ink-100 bg-white text-brand-600 shadow-sm">
-                <LayoutGrid className="h-5 w-5" />
+        {/* 特色功能区：卡片 + 胶囊 CTA */}
+        {!collapsed && (
+          <div className="px-3 pb-4">
+            <div className="rounded-xl border border-ink-100 bg-gradient-to-br from-ink-50 to-white p-3.5 shadow-soft">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-ink-100 bg-white text-brand-600 shadow-sm">
+                  <LayoutGrid className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink-900">{feature.title}</p>
+                  {feature.description && (
+                    <p className="truncate text-xs text-ink-400">{feature.description}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={feature.onCta}
+                  className="shrink-0 rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700"
+                >
+                  {feature.cta}
+                </button>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-ink-900">{feature.title}</p>
-                {feature.description && (
-                  <p className="truncate text-xs text-ink-400">{feature.description}</p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={feature.onCta}
-                className="shrink-0 rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700"
-              >
-                {feature.cta}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 最近记录区 */}
-      {!collapsed && (
-        <div className="border-t border-ink-100 px-3 py-3">
-          <p className="flex items-center gap-1.5 px-1.5 pb-2 text-xs font-medium text-ink-400">
-            <History className="h-3.5 w-3.5" />
-            {history.title}
-          </p>
-          {history.items.length > 0 ? (
-            <>
-              <ul className="space-y-0.5">
-                {history.items.slice(0, 4).map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={history.onViewAll}
-                      title={item.text}
-                      className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-ink-50"
-                    >
-                      <FileText className="h-3.5 w-3.5 shrink-0 text-ink-300" />
-                      <span className="truncate text-sm text-ink-700">{item.text}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={history.onViewAll}
-                className="mt-1.5 px-1.5 text-xs font-medium text-brand-600 underline-offset-4 hover:underline"
-              >
-                查看全部
-              </button>
-            </>
-          ) : (
-            <p className="px-1.5 text-xs text-ink-400">暂无记录</p>
-          )}
-        </div>
-      )}
+        {/* 最近记录区 */}
+        {!collapsed && (
+          <div className="border-t border-ink-100 px-3 py-3">
+            <p className="flex items-center gap-1.5 px-1.5 pb-2 text-xs font-medium text-ink-400">
+              <History className="h-3.5 w-3.5" />
+              {history.title}
+            </p>
+            {history.items.length > 0 ? (
+              <>
+                <ul className="space-y-0.5">
+                  {history.items.slice(0, 4).map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={history.onViewAll}
+                        title={item.text}
+                        className="flex w-full items-center gap-2 rounded-lg px-1.5 py-1.5 text-left transition-colors hover:bg-ink-50"
+                      >
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-ink-300" />
+                        <span className="truncate text-sm text-ink-700">{item.text}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={history.onViewAll}
+                  className="mt-1.5 px-1.5 text-xs font-medium text-brand-600 underline-offset-4 hover:underline"
+                >
+                  查看全部
+                </button>
+              </>
+            ) : (
+              <p className="px-1.5 text-xs text-ink-400">暂无记录</p>
+            )}
+          </div>
+        )}
+      </nav>
 
       {/* 底部操作栏：纯黑背景 + 头像 + 白色线框图标 */}
       <div
@@ -342,7 +342,7 @@ function SidebarContent({
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
