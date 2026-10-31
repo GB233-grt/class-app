@@ -276,72 +276,70 @@ function SidebarContent({
             <LogOut className="h-4 w-4" />
           </button>
         </div>
+      </div>
 
-        {/* 弹层：系统消息 / 帮助 */}
-        {modal && (
+      {modal && (
+        <div className="fixed inset-0 z-40">
+          <div className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm" onClick={() => setModal(null)} />
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed bottom-6 right-6 z-50 rounded-2xl bg-white p-5 shadow-2xl sm:bottom-8 sm:right-8"
+            onClick={(event) => event.stopPropagation()}
             role="dialog"
-            aria-modal="true"
+            aria-modal="false"
             aria-label={modal === 'system' ? '系统消息' : '帮助'}
           >
-            <div className="absolute inset-0 bg-ink-950/50 backdrop-blur-sm" onClick={() => setModal(null)} />
-            <div className="animate-fade-up relative max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-ink-900">
-                  {modal === 'system' ? '系统消息' : '帮助'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setModal(null)}
-                  aria-label="关闭"
-                  className="rounded-lg p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-900"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold text-ink-900">
+                {modal === 'system' ? '系统消息' : '帮助'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                aria-label="关闭"
+                className="rounded-lg p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-900"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-              {modal === 'system' ? (
-                <ul className="space-y-3">
-                  {SYSTEM_MESSAGES.map((message) => (
-                    <li key={message.title} className="rounded-lg bg-ink-50 px-4 py-3">
-                      <p className="flex items-center gap-2 text-sm font-medium text-ink-900">
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                        {message.title}
-                      </p>
-                      <p className="mt-1 pl-3.5 text-sm leading-relaxed text-ink-500">
-                        {message.detail}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-brand-50 px-4 py-3">
-                    <p className="text-sm font-medium text-ink-900">项目作者</p>
-                    <p className="mt-1 text-sm text-ink-600">{PROJECT_AUTHOR}</p>
-                  </div>
-                  <div>
-                    <p className="mb-2 text-sm font-medium text-ink-900">使用方法</p>
-                    <div className="space-y-3">
-                      {USAGE_GUIDE.map((section) => (
-                        <div key={section.role} className="rounded-lg bg-ink-50 px-4 py-3">
-                          <p className="text-sm font-medium text-ink-900">{section.role}</p>
-                          <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-600">
-                            {section.points.map((point) => (
-                              <li key={point}>{point}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
+            {modal === 'system' ? (
+              <ul className="space-y-2.5">
+                {SYSTEM_MESSAGES.map((message) => (
+                  <li key={message.title} className="rounded-lg bg-ink-50 px-3.5 py-2.5">
+                    <p className="flex items-center gap-2 text-sm font-medium text-ink-900">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                      {message.title}
+                    </p>
+                    <p className="mt-1 pl-3.5 text-xs leading-relaxed text-ink-500">{message.detail}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-lg bg-brand-50 px-3.5 py-2.5">
+                  <p className="text-sm font-medium text-ink-900">项目作者</p>
+                  <p className="mt-1 text-sm text-ink-600">{PROJECT_AUTHOR}</p>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium text-ink-900">使用方法</p>
+                  <div className="space-y-2.5">
+                    {USAGE_GUIDE.map((section) => (
+                      <div key={section.role} className="rounded-lg bg-ink-50 px-3.5 py-2.5">
+                        <p className="text-sm font-medium text-ink-900">{section.role}</p>
+                        <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-600">
+                          {section.points.map((point) => (
+                            <li key={point}>{point}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
