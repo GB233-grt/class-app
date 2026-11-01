@@ -19,26 +19,58 @@ export const loginSchema = z.object({
 
 export type LoginValues = z.infer<typeof loginSchema>;
 
-/** 添加商品表单 */
-export const itemFormSchema = z.object({
-  name: z.string().trim().min(1, '请输入商品名称').max(50, '商品名称不能超过 50 个字'),
-  description: z.string().trim().max(200, '商品描述不能超过 200 个字'),
-  cost: z
-    .string()
-    .min(1, '请输入积分价格')
-    .refine((v) => POSITIVE_INT.test(v), '积分价格必须是正整数')
-    .refine((v) => Number(v) > 0, '积分价格必须大于 0'),
-  stock: z
-    .string()
-    .min(1, '请输入库存')
-    .refine((v) => NON_NEGATIVE_INT.test(v), '库存必须是非负整数'),
-  image_url: z
-    .string()
-    .trim()
-    .refine((v) => v === '' || /^https?:\/\//.test(v), '图片地址需以 http:// 或 https:// 开头'),
-});
+/** 添加商品表单（实物商品的库存 / 网络商品的下载链接二选一） */
+export const itemFormSchema = z
+  .object({
+    name: z.string().trim().min(1, '请输入商品名称').max(50, '商品名称不能超过 50 个字'),
+    description: z.string().trim().max(200, '商品描述不能超过 200 个字'),
+    cost: z
+      .string()
+      .min(1, '请输入积分价格')
+      .refine((v) => POSITIVE_INT.test(v), '积分价格必须是正整数')
+      .refine((v) => Number(v) > 0, '积分价格必须大于 0'),
+    stock: z
+      .string()
+      .min(1, '请输入库存')
+      .refine((v) => NON_NEGATIVE_INT.test(v), '库存必须是非负整数'),
+    image_url: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || /^https?:\/\//.test(v), '图片地址需以 http:// 或 https:// 开头'),
+    /** 商品类型：physical=实物商品，digital=网络商品 */
+    type: z.enum(['physical', 'digital'], { required_error: '请选择商品类型' }),
+    /** 下载链接（网络商品必填） */
+    download_url: z.string().trim(),
+    /** 下载次数限制（0=不限制；网络商品必填） */
+    download_limit: z
+      .string()
+      .refine((v) => v === '' || NON_NEGATIVE_INT.test(v), '下载次数限制必须是非负整数'),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === 'digital') {
+      if (!data.download_url || data.download_url.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: '网络商品必须提供下载链接',
+          path: ['download_url'],
+        });
+      }
+    }
+  });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
+
+/** 新建商品的表单空值（实物商品作为默认类型） */
+export const NEW_ITEM_FORM: ItemFormValues = {
+  name: '',
+  description: '',
+  cost: '',
+  stock: '',
+  image_url: '',
+  type: 'physical',
+  download_url: '',
+  download_limit: '',
+};
 
 /** 创建学生/教师表单 */
 export const studentFormSchema = z.object({

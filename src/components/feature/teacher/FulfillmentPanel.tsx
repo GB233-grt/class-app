@@ -2,7 +2,7 @@
  * 兑换发放面板（教师）：查看全部兑换记录，按状态筛选，标记已发放/撤回
  */
 import { useCallback, useEffect, useState } from 'react';
-import { CheckCircle2, PackageCheck, RotateCcw } from 'lucide-react';
+import { CheckCircle2, ExternalLink, PackageCheck, RotateCcw } from 'lucide-react';
 import { redemptionsApi } from '../../../api';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../common/Button';
@@ -32,6 +32,21 @@ function StatusBadge({ status }: { status: FulfillmentStatus }) {
       <PackageCheck className="h-3.5 w-3.5" />
       待发放
     </span>
+  );
+}
+
+/** 网络商品下载链接按钮 */
+function DownloadButton({ url }: { url: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors"
+    >
+      <ExternalLink className="h-3.5 w-3.5" />
+      下载
+    </a>
   );
 }
 
@@ -120,9 +135,24 @@ export function FulfillmentPanel() {
       render: (record) => <StatusBadge status={record.status} />,
     },
     {
-      header: '操作',
+      header: '下载链接',
       render: (record) =>
-        record.status === 'pending' ? (
+        record.download_url ? (
+          <DownloadButton url={record.download_url} />
+        ) : (
+          <span className="text-xs text-ink-400">—</span>
+        ),
+    },
+    {
+      header: '操作',
+      render: (record) => {
+        // 网络商品已由系统自动发放，无需教师操作
+        if (record.download_url) {
+          return (
+            <span className="text-xs text-ink-500">系统已自动发放</span>
+          );
+        }
+        return record.status === 'pending' ? (
           <Button
             size="sm"
             loading={updatingId === record.id}
@@ -140,7 +170,8 @@ export function FulfillmentPanel() {
             <RotateCcw className="h-3.5 w-3.5" />
             撤回
           </Button>
-        ),
+        );
+      },
     },
   ];
 
@@ -163,6 +194,7 @@ export function FulfillmentPanel() {
         </div>
         <p className="text-xs text-ink-400">
           学生兑换后需由教师当面发放物品，确认后标记「已发放」；误操作可撤回（不影响积分账目）。
+          网络商品在兑换后自动发放下载链接，无需教师操作。
         </p>
       </div>
 

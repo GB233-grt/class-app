@@ -39,12 +39,23 @@ CREATE TABLE items (
     CHECK (stock >= 0),                        -- 库存数量
   image_url text,                              -- 商品图片URL
   is_active boolean NOT NULL DEFAULT true,     -- 是否上架（软删除标记，删除=下架）
+  type text NOT NULL DEFAULT 'physical'
+    CHECK (type IN ('physical', 'digital')),   -- 商品类型：实物商品/网络商品
+  publish_date timestamptz,                    -- 网络商品发布日期
+  download_url text,                           -- 网络商品下载链接
+  download_limit integer NOT NULL DEFAULT 0
+    CHECK (download_limit >= 0),               -- 下载次数限制，0=不限制
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_items_cost ON items(cost ASC);
 CREATE INDEX idx_items_active ON items(is_active) WHERE is_active = true;
+
+COMMENT ON COLUMN items.type IS '商品类型：physical=实物商品（有库存、教师线下发放），digital=网络商品（兑换后自动下发下载链接）';
+COMMENT ON COLUMN items.publish_date IS '网络商品发布日期（仅 type=digital 时有效）';
+COMMENT ON COLUMN items.download_url IS '网络商品下载链接（仅 type=digital 时有效）';
+COMMENT ON COLUMN items.download_limit IS '下载次数限制（0=不限制）';
 
 -- ============================================================
 -- 第 3 部分：兑换记录表 redemptions
@@ -61,12 +72,14 @@ CREATE TABLE redemptions (
     CHECK (status IN ('pending', 'fulfilled')),-- 发放状态：待发放 / 已发放（教师线下发放确认）
   fulfilled_at timestamptz,                    -- 发放时间
   fulfilled_by uuid REFERENCES students(id) ON DELETE SET NULL, -- 发放操作人（留痕）
+  download_url text,                          -- 网络商品下载链接（兑换时的快照）
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_redemptions_student ON redemptions(student_id);
 CREATE INDEX idx_redemptions_status ON redemptions(status);
 CREATE INDEX idx_redemptions_created ON redemptions(created_at DESC);
+CREATE INDEX idx_redemptions_download ON redemptions(item_id) WHERE status = 'fulfilled';
 
 -- ============================================================
 -- 第 4 部分：积分明细表 points_ledger
@@ -160,6 +173,8 @@ DECLARE
   v_cost         integer;
   v_stock        integer;
   v_active       boolean;
+  v_type         text;
+  v_download_url text;
   v_balance      integer;
   v_new_balance  integer;
   v_total        integer;
@@ -175,8 +190,8 @@ BEGIN
     RAISE EXCEPTION '单次兑换数量不能超过 99';
   END IF;
 
-  SELECT name, cost, stock, is_active
-    INTO v_name, v_cost, v_stock, v_active
+  SELECT name, cost, stock, is_active, type, download_url
+    INTO v_name, v_cost, v_stock, v_active, v_type, v_download_url
   FROM items WHERE id = p_item_id FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -185,33 +200,53 @@ BEGIN
   IF NOT v_active THEN
     RAISE EXCEPTION '商品已下架';
   END IF;
-  IF v_stock < p_quantity THEN
-    RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
+
+  -- 网络商品：不校验库存，兑换后自动发放下载链接（已发放，无需教师干预）
+  IF v_type = 'digital' THEN
+    IF v_download_url IS NULL OR v_download_url = '' THEN
+      RAISE EXCEPTION '该商品未配置下载链接，请联系管理员';
+    END IF;
+
+    INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity, status, download_url)
+    VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'fulfilled', v_download_url)
+    RETURNING id INTO v_redemptionId;
+
+    INSERT INTO points_ledger (student_id, delta, balance_after, reason)
+    VALUES (
+      p_student_id, -(v_cost * p_quantity), v_new_balance,
+      '兑换商品：' || v_name || '（已发放下载链接，请到兑换记录查看）'
+    );
+  ELSE
+    -- 实物商品：先检查库存，库存不足则终止
+    IF v_stock < p_quantity THEN
+      RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
+    END IF;
+
+    SELECT points INTO v_balance FROM students WHERE id = p_student_id FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION '学生不存在';
+    END IF;
+    v_total := v_cost * p_quantity;
+    IF v_balance < v_total THEN
+      RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
+    END IF;
+
+    v_new_balance := v_balance - v_total;
+
+    UPDATE students SET points = v_new_balance WHERE id = p_student_id;
+    UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
+
+    -- 兑换记录（快照商品名称与单价，防止商品变更后历史记录失真）
+    INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity, status, download_url)
+    VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'pending', NULL)
+    RETURNING id INTO v_redemptionId;
+
+    INSERT INTO points_ledger (student_id, delta, balance_after, reason)
+    VALUES (
+      p_student_id, -v_total, v_new_balance,
+      '兑换商品：' || v_name || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
+    );
   END IF;
-
-  SELECT points INTO v_balance FROM students WHERE id = p_student_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION '学生不存在';
-  END IF;
-  v_total := v_cost * p_quantity;
-  IF v_balance < v_total THEN
-    RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
-  END IF;
-
-  v_new_balance := v_balance - v_total;
-
-  UPDATE students SET points = v_new_balance WHERE id = p_student_id;
-  UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
-
-  INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity)
-  VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity)
-  RETURNING id INTO v_redemptionId;
-
-  INSERT INTO points_ledger (student_id, delta, balance_after, reason)
-  VALUES (
-    p_student_id, -v_total, v_new_balance,
-    '兑换商品：' || v_name || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
-  );
 
   RETURN QUERY VALUES (v_redemptionId, v_new_balance);
 END;
@@ -228,6 +263,8 @@ SET search_path = public
 AS $$
 DECLARE
   v_current text;
+  v_item_id uuid;
+  v_item_type text;
 BEGIN
   IF p_new_status NOT IN ('pending', 'fulfilled') THEN
     RAISE EXCEPTION '非法的发放状态';
@@ -236,12 +273,22 @@ BEGIN
     RAISE EXCEPTION '无权限：仅教师或管理员可更新发放状态';
   END IF;
 
-  SELECT status INTO v_current FROM redemptions WHERE id = p_redemption_id FOR UPDATE;
+  SELECT r.status, r.item_id, i.type
+    INTO v_current, v_item_id, v_item_type
+  FROM redemptions r
+  JOIN items i ON i.id = r.item_id
+  WHERE r.id = p_redemption_id FOR UPDATE;
+
   IF NOT FOUND THEN
     RAISE EXCEPTION '兑换记录不存在';
   END IF;
   IF v_current = p_new_status THEN
     RAISE EXCEPTION '发放状态未发生变化';
+  END IF;
+
+  -- 网络商品兑换记录不得回退为"待发放"（避免学生下载不到链接）
+  IF v_item_type = 'digital' AND p_new_status = 'pending' THEN
+    RAISE EXCEPTION '网络商品已自动发放下载链接，不可撤回';
   END IF;
 
   UPDATE redemptions

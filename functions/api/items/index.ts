@@ -8,6 +8,9 @@ import { requireAdmin, requireAuth } from '../../lib/auth';
 import { createAdminClient, createUserClient } from '../../lib/supabase';
 import type { Env, Item } from '../../lib/types';
 
+// 商品类型（实物商品 / 网络商品）
+const ITEM_TYPES = ['physical', 'digital'] as const;
+
 // 登录用户获取商品列表
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireAuth(env, request);
@@ -30,7 +33,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   return jsonResponse((data ?? []) as Item[]);
 };
 
-// 管理员添加商品
+// 管理员添加商品（实物商品的库存 / 网络商品的下载链接二选一）
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   await requireAdmin(env, request);
 
@@ -41,9 +44,38 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const stock = requireInt(body.stock, '库存', { min: 0, max: 1000000 });
   const imageUrl = optionalString(body.image_url, 500);
 
+  // 商品类型
+  const rawType = requireString(body.type, '商品类型');
+  const type = ITEM_TYPES.find((t) => t === rawType);
+  if (type === undefined) {
+    throw new HttpError(400, '商品类型必须为 physical（实物商品）或 digital（网络商品）');
+  }
+
+  // 网络商品：下载链接必须提供，发布日期默认为现在
+  const downloadUrl = optionalString(body.download_url, 500);
+  const publishDate = optionalString(body.publish_date, 50);
+  if (type === 'digital') {
+    if (!downloadUrl) {
+      throw new HttpError(400, '网络商品必须提供下载链接');
+    }
+  }
+
+  // 下载次数限制（0=不限制）
+  const downloadLimit = requireInt(body.download_limit ?? 0, '下载次数限制', { min: 0, max: 1000000 });
+
   const { data, error } = await createAdminClient(env)
     .from('items')
-    .insert({ name, description, cost, stock, image_url: imageUrl })
+    .insert({
+      name,
+      description,
+      cost,
+      stock,
+      image_url: imageUrl,
+      type,
+      publish_date: publishDate || (type === 'digital' ? new Date().toISOString() : null),
+      download_url: downloadUrl,
+      download_limit: type === 'digital' ? downloadLimit : 0,
+    })
     .select('*')
     .single();
 

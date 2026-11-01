@@ -26,7 +26,7 @@ export interface Student {
   created_at: string;
 }
 
-/** 商品表行结构 */
+/** 商品表行结构（type: physical=实物商品，digital=网络商品） */
 export interface Item {
   id: string;
   name: string;
@@ -35,6 +35,10 @@ export interface Item {
   stock: number;
   image_url: string | null;
   is_active: boolean;
+  type: 'physical' | 'digital';
+  publish_date: string | null;
+  download_url: string | null;
+  download_limit: number;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +50,14 @@ export interface CreateItemPayload {
   cost: number;
   stock: number;
   image_url?: string | null;
+  /** 商品类型：physical=实物商品，digital=网络商品 */
+  type: 'physical' | 'digital';
+  /** 公共发布日期（网络商品） */
+  publish_date?: string | null;
+  /** 下载链接（网络商品） */
+  download_url?: string | null;
+  /** 下载次数限制（0=不限制）（网络商品） */
+  download_limit?: number;
 }
 
 /** 创建学生请求体 */
@@ -80,6 +92,8 @@ export interface Redemption {
   status: FulfillmentStatus;
   fulfilled_at: string | null;
   fulfilled_by: string | null;
+  /** 网络商品下载链接（兑换时的快照） */
+  download_url: string | null;
   created_at: string;
 }
 

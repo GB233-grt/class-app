@@ -26,12 +26,36 @@ export interface Item {
   stock: number;
   image_url: string | null;
   is_active: boolean;
+  type: ItemType;
+  publish_date: string | null;
+  download_url: string | null;
+  download_limit: number;
   created_at: string;
   updated_at: string;
 }
 
 /** 发放状态 */
 export type FulfillmentStatus = 'pending' | 'fulfilled';
+
+/** 商品类型 */
+export type ItemType = 'physical' | 'digital';
+
+/** 商品/物品（items 表） */
+export interface Item {
+  id: string;
+  name: string;
+  description: string | null;
+  cost: number;
+  stock: number;
+  image_url: string | null;
+  is_active: boolean;
+  type: ItemType;
+  publish_date: string | null;
+  download_url: string | null;
+  download_limit: number;
+  created_at: string;
+  updated_at: string;
+}
 
 /** 兑换记录（redemptions 表） */
 export interface Redemption {
@@ -44,6 +68,8 @@ export interface Redemption {
   status: FulfillmentStatus;
   fulfilled_at: string | null;
   fulfilled_by: string | null;
+  /** 网络商品下载链接（兑换时的快照） */
+  download_url: string | null;
   created_at: string;
 }
 
@@ -85,6 +111,14 @@ export interface CreateItemPayload {
   cost: number;
   stock: number;
   image_url?: string | null;
+  /** 商品类型：physical=实物商品，digital=网络商品 */
+  type: ItemType;
+  /** 发布日期（网络商品） */
+  publish_date?: string | null;
+  /** 下载链接（网络商品） */
+  download_url?: string | null;
+  /** 下载次数限制，0=不限制（网络商品） */
+  download_limit?: number;
 }
 
 /** 创建用户请求体（支持角色选择：学生/教师） */

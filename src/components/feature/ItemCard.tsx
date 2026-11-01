@@ -1,8 +1,9 @@
 /**
  * 商品卡片：图片（含占位图）、库存徽章、积分价格、数量选择、兑换按钮
+ * 网络商品不展示库存（ unlimited ），兑换后在兑换记录中下载
  */
 import { useState } from 'react';
-import { Coins, Gift, Minus, Plus } from 'lucide-react';
+import { Coins, Gift, Minus, Plus, Shield } from 'lucide-react';
 import { Button } from '../common/Button';
 import { cn, formatPoints } from '../../lib/utils';
 import type { Item } from '../../types';
@@ -22,12 +23,15 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
   const [imageFailed, setImageFailed] = useState(false);
   const [qty, setQty] = useState(1);
 
-  // 数量上限 = min(库存, 积分可负担数量)
+  // 网络商品不受库存限制（仅受积分上限与数量上限约束），实物商品看积分/库存
   const maxAffordable = item.cost > 0 ? Math.floor(points / item.cost) : 0;
-  const maxQty = Math.max(0, Math.min(item.stock, maxAffordable));
+  const maxQty =
+    item.type === 'digital'
+      ? Math.max(0, Math.min(maxAffordable, 99))
+      : Math.max(0, Math.min(item.stock, maxAffordable));
   const effectiveQty = Math.min(qty, maxQty);
   const total = item.cost * effectiveQty;
-  const soldOut = item.stock <= 0;
+  const soldOut = item.type === 'physical' && item.stock <= 0;
   const insufficient = maxQty < 1;
   const disabled = soldOut || insufficient || redeeming;
 
@@ -56,14 +60,21 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
             <Gift className="h-10 w-10 text-white/30" />
           </div>
         )}
-        <span
-          className={cn(
-            'absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-medium backdrop-blur',
-            soldOut ? 'bg-red-500/90 text-white' : 'bg-white/90 text-ink-700',
-          )}
-        >
-          {soldOut ? '已售罄' : `库存 ${item.stock}`}
-        </span>
+        {item.type === 'digital' ? (
+          <span className="absolute right-2 top-2 rounded-full bg-blue-600/90 px-2.5 py-1 text-xs font-medium text-white">
+            <Shield className="mr-1 inline h-3 w-3" />
+            网络商品
+          </span>
+        ) : (
+          <span
+            className={cn(
+              'absolute right-2 top-2 rounded-full px-2.5 py-1 text-xs font-medium backdrop-blur',
+              soldOut ? 'bg-red-500/90 text-white' : 'bg-white/90 text-ink-700',
+            )}
+          >
+            {soldOut ? '已售罄' : `库存 ${item.stock}`}
+          </span>
+        )}
       </div>
 
       {/* 商品信息 */}
@@ -116,7 +127,13 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
             合计 <span className="font-semibold text-ink-900">{formatPoints(total)}</span> 积分
             {effectiveQty >= maxQty && maxQty > 1 && (
               <span className="ml-1 text-amber-600">
-                （已达{item.stock <= maxAffordable ? '库存' : '积分可兑换'}上限）
+                （已达
+                {item.type === 'digital'
+                  ? '积分可兑换'
+                  : item.stock <= maxAffordable
+                    ? '库存'
+                    : '积分可兑换'}
+                上限）
               </span>
             )}
           </p>
@@ -136,7 +153,9 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
               ? '积分不足'
               : redeeming
                 ? '兑换中…'
-                : `立即兑换（${formatPoints(total)} 积分）`}
+                : item.type === 'digital'
+                  ? `立即兑换（${formatPoints(total)} 积分）`
+                  : `立即兑换（${formatPoints(total)} 积分）`}
         </Button>
       </div>
     </div>

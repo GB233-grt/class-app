@@ -26,7 +26,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     .select(
       // redemptions 有两条指向 students 的外键（student_id / fulfilled_by），
       // 必须用 !student_id 显式消歧，否则 PostgREST 报"关系不明确"
-      'id, student_id, item_id, item_name, cost, quantity, status, fulfilled_at, fulfilled_by, created_at, students!student_id(name, student_no)',
+      'id, student_id, item_id, item_name, cost, quantity, status, fulfilled_at, fulfilled_by, download_url, created_at, students!student_id(name, student_no)',
     )
     .order('created_at', { ascending: false })
     .limit(200);

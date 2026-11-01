@@ -18,6 +18,15 @@ interface StorePanelProps {
   onRedeemed: () => void;
 }
 
+/** 兑换成功提示：实体商品需要等待教师发放，数字商品可直接下载 */
+function redeemSuccessMessage(itemType: 'physical' | 'digital', quantity: number, title: string) {
+  return itemType === 'digital'
+    ? `兑换成功！${title} 已关联下载链接，请到「兑换记录」中查看`
+    : quantity > 1
+      ? `兑换成功！${title} × ${quantity} 已提交，请到兑换记录查看发放状态`
+      : '兑换成功，请到兑换记录查看发放状态';
+}
+
 export function StorePanel({ onRedeemed }: StorePanelProps) {
   const { profile, refreshProfile } = useAuth();
   const { items, loading, error, refresh } = useItems();
@@ -29,12 +38,10 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
     if (!profile) return;
     setRedeemingId(item.id);
     try {
-      const result = await redemptionsApi.redeem(item.id, quantity);
+      await redemptionsApi.redeem(item.id, quantity);
       showToast(
         'success',
-        quantity > 1
-          ? `兑换成功！${item.name} × ${quantity} 已提交，请到兑换记录查看发放状态`
-          : result.message || '兑换成功',
+        redeemSuccessMessage(item.type, quantity, item.name),
       );
       // 刷新积分余额与商品库存
       await Promise.all([refreshProfile(), refresh()]);

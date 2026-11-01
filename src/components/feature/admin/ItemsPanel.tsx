@@ -1,10 +1,14 @@
 /**
  * 商品管理面板：商品列表（表格）+ 添加/编辑商品表单
+ *
+ * 商品类型：
+ *   实物商品：有库存，学生兑换后教师线下发放
+ *   网络商品：不扣库存，交换后自动下发下载链接
  */
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Coins, Package, Pencil, Plus, X } from 'lucide-react';
+import { Coins, Package, Pencil, Plus, Shield, X } from 'lucide-react';
 import { itemsApi } from '../../../api';
 import { useItems } from '../../../hooks/useItems';
 import { useToast } from '../../../hooks/useToast';
@@ -15,10 +19,23 @@ import { Input } from '../../common/Input';
 import { Textarea } from '../../common/Textarea';
 import { ErrorNotice } from '../../common/States';
 import { cn, formatPoints, getErrorMessage } from '../../../lib/utils';
-import { itemFormSchema, type ItemFormValues } from '../../../lib/validation';
+import { itemFormSchema, NEW_ITEM_FORM, type ItemFormValues } from '../../../lib/validation';
 import type { Item } from '../../../types';
 
-const EMPTY_FORM: ItemFormValues = { name: '', description: '', cost: '', stock: '', image_url: '' };
+/** 商品类型徽标 */
+function ItemTag({ item }: { item: Item }) {
+  return item.type === 'digital' ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+      <Shield className="h-2.5 w-2.5" />
+      网络商品
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
+      <Package className="h-2.5 w-2.5" />
+      实物商品
+    </span>
+  );
+}
 
 export function ItemsPanel() {
   const { items, loading, error, refresh } = useItems();
@@ -32,11 +49,15 @@ export function ItemsPanel() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
-    defaultValues: EMPTY_FORM,
+    defaultValues: NEW_ITEM_FORM,
   });
+
+  // 商品类型（控制网络商品专属字段的显示与隐藏）
+  const itemType = useWatch({ name: 'type', control });
 
   // 进入编辑模式：用该商品当前值填充表单
   const startEdit = (item: Item) => {
@@ -48,13 +69,16 @@ export function ItemsPanel() {
       cost: String(item.cost),
       stock: String(item.stock),
       image_url: item.image_url ?? '',
+      type: item.type,
+      download_url: item.download_url ?? '',
+      download_limit: String(item.download_limit ?? 0),
     });
   };
 
   // 退出编辑模式：清空表单回到添加模式
   const cancelEdit = () => {
     setEditingItem(null);
-    reset(EMPTY_FORM);
+    reset(NEW_ITEM_FORM);
   };
 
   // 提交：按模式调用 新建 / 更新（数值字段已在表单层校验为整数格式）
@@ -65,6 +89,13 @@ export function ItemsPanel() {
       cost: Number(values.cost),
       stock: Number(values.stock),
       image_url: values.image_url || undefined,
+      type: values.type,
+      publish_date: undefined,
+      download_url: (values.type === 'digital' && values.download_url ? values.download_url : undefined),
+      download_limit:
+        values.type === 'digital' && values.download_limit.length > 0
+          ? Number(values.download_limit)
+          : 0,
     };
     try {
       if (editingItem) {
@@ -74,7 +105,7 @@ export function ItemsPanel() {
       } else {
         await itemsApi.create(payload);
         showToast('success', '商品添加成功');
-        reset();
+        reset(NEW_ITEM_FORM);
       }
       await refresh();
     } catch (err) {
@@ -104,7 +135,10 @@ export function ItemsPanel() {
       header: '商品',
       render: (item) => (
         <div className="min-w-[10rem]">
-          <p className="font-medium text-ink-900">{item.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-ink-900">{item.name}</p>
+            <ItemTag item={item} />
+          </div>
           {item.description && (
             <p className="mt-0.5 line-clamp-1 text-xs text-ink-400">{item.description}</p>
           )}
@@ -227,6 +261,20 @@ export function ItemsPanel() {
           </p>
         )}
         <form className="space-y-4" onSubmit={onSubmit} noValidate>
+          {/* 商品类型 */}
+          <div>
+            <p className="mb-2 text-sm font-medium text-ink-900">商品类型</p>
+            <div className="flex gap-2">
+              <label className="flex items-center gap-2 rounded-lg border border-ink-100 px-3 py-2 text-sm font-medium">
+                <input type="radio" value="physical" {...register('type')} className="text-brand-600" />
+                实物商品
+              </label>
+              <label className="flex items-center gap-2 rounded-lg border border-ink-100 px-3 py-2 text-sm font-medium">
+                <input type="radio" value="digital" {...register('type')} className="text-brand-600" />
+                网络商品
+              </label>
+            </div>
+          </div>
           <Input
             label="商品名称"
             placeholder="例如：学校笔记本"
@@ -258,6 +306,26 @@ export function ItemsPanel() {
               {...register('stock')}
             />
           </div>
+          {/* 网络商品专属字段：下载链接 + 下载次数限制 */}
+          {itemType === 'digital' && (
+            <>
+              <Input
+                label="下载链接"
+                type="url"
+                placeholder="https://…（必填）"
+                error={errors.download_url?.message}
+                {...register('download_url')}
+              />
+              <Input
+                label="下载次数限制（0=不限制）"
+                type="number"
+                min={0}
+                placeholder="0"
+                error={errors.download_limit?.message}
+                {...register('download_limit')}
+              />
+            </>
+          )}
           <Input
             label="图片URL"
             placeholder="https://…（选填）"

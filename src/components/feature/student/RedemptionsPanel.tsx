@@ -1,7 +1,7 @@
 /**
- * 兑换记录面板：历史兑换表格（含数量与发放状态）
+ * 兑换记录面板：历史兑换表格（含数量、发放状态、网络商品下载链接）
  */
-import { CheckCircle2, PackageCheck, ReceiptText } from 'lucide-react';
+import { CheckCircle2, ExternalLink, PackageCheck, ReceiptText } from 'lucide-react';
 import { DataTable, type DataTableColumn } from '../../common/DataTable';
 import { ErrorNotice } from '../../common/States';
 import { formatDateTime, formatPoints } from '../../../lib/utils';
@@ -29,6 +29,21 @@ function StatusBadge({ status }: { status: FulfillmentStatus }) {
   );
 }
 
+/** 有效下载链接按钮（网络商品） */
+function DownloadButton({ url, label }: { url: string; label?: string }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100 transition-colors"
+    >
+      <ExternalLink className="h-3.5 w-3.5" />
+      {label || '下载'}
+    </a>
+  );
+}
+
 const columns: DataTableColumn<Redemption>[] = [
   {
     header: '商品名称',
@@ -49,6 +64,15 @@ const columns: DataTableColumn<Redemption>[] = [
   {
     header: '发放状态',
     render: (record) => <StatusBadge status={record.status} />,
+  },
+  {
+    header: '下载链接',
+    render: (record) =>
+      record.status === 'fulfilled' && record.download_url ? (
+        <DownloadButton url={record.download_url} label="点击下载" />
+      ) : (
+        <span className="text-xs text-ink-400">—</span>
+      ),
   },
   {
     header: '兑换时间',
