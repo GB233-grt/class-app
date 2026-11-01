@@ -279,11 +279,10 @@ function SidebarContent({
       </div>
 
       {modal && (
-        <div className="fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm" onClick={() => setModal(null)} />
+        <div className="fixed inset-0 z-40" onClick={() => setModal(null)}>
+          <div className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm" />
           <div
             className="fixed bottom-6 right-6 z-50 rounded-2xl bg-white p-5 shadow-2xl sm:bottom-8 sm:right-8"
-            onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="false"
             aria-label={modal === 'system' ? '系统消息' : '帮助'}
