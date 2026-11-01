@@ -10,7 +10,7 @@
 INSERT INTO items (name, description, cost, stock, type, download_url, publish_date) VALUES
   -- 实物商品（线下发放）
   ('学校笔记本',     'A5硬壳笔记本，120页',         30,  50, 'physical', NULL, NULL),
-  ('中性笔套装',     '5支蓝色中式笔装',            15, 100, 'physical', NULL, NULL),
+  ('中性笔套装',     '5支蓝色中性笔装',            15,  100, 'physical', NULL, NULL),
   ('保温水瓶',       '750ml不锈钢保温瓶带校徽',    80,  20, 'physical', NULL, NULL),
   ('帆布托特包',     '环保帆布包印校徽',           60,  30, 'physical', NULL, NULL),
   ('科学计算器',     '卡西欧FX-991EX',             200, 8,  'physical', NULL, NULL),

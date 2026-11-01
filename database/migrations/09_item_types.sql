@@ -97,7 +97,18 @@ BEGIN
     RAISE EXCEPTION '商品已下架';
   END IF;
 
-  -- 网络商品：不校验库存，兑换后自动发放下载链接
+  -- 锁定学生行并校验余额（数字/实物商品都需先扣积分）
+  SELECT points INTO v_balance FROM students WHERE id = p_student_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION '学生不存在';
+  END IF;
+  v_total := v_cost * p_quantity;
+  IF v_balance < v_total THEN
+    RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
+  END IF;
+  v_new_balance := v_balance - v_total;
+
+  -- 网络商品：不扣库存，兑换后自动标记"已发放"并返回下载链接（无需教师干预）
   IF v_type = 'digital' THEN
     IF v_download_url IS NULL OR v_download_url = '' THEN
       RAISE EXCEPTION '该商品未配置下载链接，请联系管理员';
@@ -110,26 +121,14 @@ BEGIN
 
     INSERT INTO points_ledger (student_id, delta, balance_after, reason)
     VALUES (
-      p_student_id, -(v_cost * p_quantity), v_new_balance,
+      p_student_id, -v_total, v_new_balance,
       '兑换商品：' || v_name || '（已发放下载链接，请到兑换记录查看）'
     );
   ELSE
-    -- 实物商品：暂存库存校验，商品库存不足时终止
+    -- 实物商品：先检查库存，商品库存不足时终止
     IF v_stock < p_quantity THEN
       RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
     END IF;
-
-    -- 锁定学生行并校验积分
-    SELECT points INTO v_balance FROM students WHERE id = p_student_id FOR UPDATE;
-    IF NOT FOUND THEN
-      RAISE EXCEPTION '学生不存在';
-    END IF;
-    v_total := v_cost * p_quantity;
-    IF v_balance < v_total THEN
-      RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
-    END IF;
-
-    v_new_balance := v_balance - v_total;
 
     UPDATE students SET points = v_new_balance WHERE id = p_student_id;
     UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;

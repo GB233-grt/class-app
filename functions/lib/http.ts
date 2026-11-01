@@ -98,5 +98,9 @@ export function translateDbError(message: string): string {
   if (message.includes('adjust_student_points_batch') && message.includes('does not exist')) {
     return '数据库尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/08_batch_points_adjust.sql 后重试';
   }
+  // database/migrations/09_item_types.sql
+  if (message.includes('items') && message.match(/type|download_url|download_limit/)) {
+    return '数据库尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/09_item_types.sql 后重试';
+  }
   return message || '操作失败，请稍后重试';
 }

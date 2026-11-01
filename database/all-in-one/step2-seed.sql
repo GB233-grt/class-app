@@ -49,12 +49,14 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================
 -- 第 4 部分：示例商品（物品）数据 —— 可自由修改
 -- ============================================================
-INSERT INTO items (name, description, cost, stock, image_url) VALUES
-  ('学校笔记本',     'A5硬壳笔记本，120页',        30,  50,  NULL),
-  ('中性笔套装',     '5支蓝色中性笔装',            15,  100, NULL),
-  ('保温水瓶',       '750ml不锈钢保温瓶带校徽',    80,  20,  NULL),
-  ('帆布托特包',     '环保帆布包印校徽',           60,  30,  NULL),
-  ('科学计算器',     '卡西欧FX-991EX',             200, 8,   NULL),
-  ('图书馆通行证',   '全天优先自习室使用权',       25,  999, NULL),
-  ('无线耳机',       '蓝牙耳机带充电盒',           300, 5,   NULL),
-  ('电影票兑换券',   '单次影院兑换券',             120, 15,  NULL);
+INSERT INTO items (name, description, cost, stock, type, download_url, publish_date) VALUES
+  ('学校笔记本',     'A5硬壳笔记本，120页',        30,  50, 'physical', NULL, NULL),
+  ('中性笔套装',     '5支蓝色中性笔装',        15, 100, 'physical', NULL, NULL),
+  ('保温水瓶',       '750ml不锈钢保温瓶带校徽',    80,  20, 'physical', NULL, NULL),
+  ('帆布托特包',     '环保帆布包印校徽',           60,  30, 'physical', NULL, NULL),
+  ('科学计算器',     '卡西欧FX-991EX',             200, 8,  'physical', NULL, NULL),
+  ('图书馆通行证',   '全天优先自习室使用权',       25, 999, 'physical', NULL, NULL),
+  ('无线耳机',       '蓝牙耳机带充电盒',           300, 5,  'physical', NULL, NULL),
+  ('电影票兑换券',   '单次影院兑换券',             120, 15, 'physical', NULL, NULL),
+  -- 网络商品（线上下载）：`download_url` 需管理员按月/版本更换
+  ('答案解析网络版', '全年题库解析，购买后下载',   50,  0, 'digital', 'https://example.com/downloads/answers.zip', NULL);

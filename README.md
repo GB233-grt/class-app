@@ -50,7 +50,13 @@
 │   │   ├── 03_create_redemptions.sql
 │   │   ├── 04_create_points_ledger.sql
 │   │   ├── 05_create_functions.sql     # 积分调整/物品兑换原子函数 + updated_at 触发器
-│   │   └── 06_enable_rls.sql           # 行级安全（RLS）策略
+│   │   ├── 06_enable_rls.sql           # 行级安全（RLS）策略
+│   │   ├── 07_teacher_and_fulfillment.sql  # 教师角色/数量兑换/发放状态
+│   │   ├── 08_batch_points_adjust.sql  # 批量积分调整
+│   │   └── 09_item_types.sql           # 商品类型（实物/网络）+ 下载链接
+│   └── all-in-one/
+│       ├── step1-schema.sql            # 一键建表（含全部表/函数/RLS）
+│       └── step2-seed.sql              # 一键种子数据
 │   └── seed/                 # 种子数据 SQL 模板（不自动执行，按需修改后手动执行）
 │       ├── 01_create_admin.sql
 │       ├── 02_create_students.sql
@@ -128,14 +134,15 @@ cp .dev.vars.example .dev.vars
 
 **① 执行建表脚本**
 
-进入 Supabase 控制台 → **SQL Editor**，按文件名顺序依次粘贴执行 `database/migrations/` 下的 6 个脚本：
+**全新库**：进入 Supabase 控制台 → **SQL Editor**，按文件名顺序依次粘贴执行 `database/all-in-one/step1-schema.sql` 和 `database/all-in-one/step2-seed.sql`。
 
-1. `01_create_students.sql` —— 学生表
-2. `02_create_items.sql` —— 商品（物品）表
-3. `03_create_redemptions.sql` —— 兑换记录表
-4. `04_create_points_ledger.sql` —— 积分明细表
-5. `05_create_functions.sql` —— 积分调整/物品兑换原子函数（防并发超卖、余额错乱）
-6. `06_enable_rls.sql` —— 行级安全策略（普通用户只能读自己的数据）
+**已有库升级**：按文件名顺序执行 `database/migrations/` 下未执行过的增量脚本（`07~09`）：
+
+1. `07_teacher_and_fulfillment.sql` —— 教师角色 + 按数量兑换 + 发放状态流转
+2. `08_batch_points_adjust.sql` —— 批量积分调整（Excel）
+3. `09_item_types.sql` —— 商品类型（实物商品/网络商品）+ 网络商品自动发卡下载链接
+
+> 每次升级后请重新部署（`npm run deploy`），使后端 API 与数据库结构匹配。
 
 **② 创建登录账号（Authentication）**
 
