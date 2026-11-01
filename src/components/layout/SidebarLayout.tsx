@@ -1,13 +1,11 @@
 /**
  * 侧边栏布局（三个仪表盘共用）：
- * 顶部 Logo + 分类导航 + 特色卡片 + 最近记录 + 底部黑色操作栏（头像/系统消息/帮助/登出）
+ * 顶部 Logo + 分类导航 + 特色卡片 + 最近记录 + 底部黑色操作栏（头像/登出）
  * 桌面端：固定左栏，可折叠为图标列；移动端：顶栏 + 抽屉
  * 视觉：浅底、留白充足、蓝色系线框图标（品牌绿）、卡片化分区
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
-  Bell,
-  CircleHelp,
   FileText,
   History,
   LayoutGrid,
@@ -19,7 +17,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import { PROJECT_AUTHOR, SYSTEM_MESSAGES, USAGE_GUIDE } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 
 export interface SidebarNavItem {
@@ -53,8 +50,6 @@ interface SidebarLayoutProps {
   children: ReactNode;
 }
 
-type ModalKind = 'system' | 'help' | null;
-
 const COLLAPSE_STORAGE_KEY = 'sidebar-collapsed';
 
 interface SidebarContentProps {
@@ -80,17 +75,6 @@ function SidebarContent({
   isMobile = false,
 }: SidebarContentProps) {
   const { profile, logout } = useAuth();
-  const [modal, setModal] = useState<ModalKind>(null);
-
-  // 弹层打开时按 Esc 关闭
-  useEffect(() => {
-    if (!modal) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setModal(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [modal]);
 
   const initial = (profile?.name ?? '学').slice(0, 1);
 
@@ -258,12 +242,6 @@ function SidebarContent({
           {initial}
         </div>
         <div className={cn('flex gap-1', collapsed ? 'flex-col items-center' : 'ml-auto items-center')}>
-          <button type="button" onClick={() => setModal('system')} aria-label="系统消息" title="系统消息" className={bottomButton}>
-            <Bell className="h-4 w-4" />
-          </button>
-          <button type="button" onClick={() => setModal('help')} aria-label="帮助" title="帮助" className={bottomButton}>
-            <CircleHelp className="h-4 w-4" />
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -277,68 +255,6 @@ function SidebarContent({
           </button>
         </div>
       </div>
-
-      {modal && (
-        <div className="fixed inset-0 z-40" onClick={() => setModal(null)}>
-          <div className="absolute inset-0 bg-ink-950/40 backdrop-blur-sm" />
-          <div
-            className="fixed bottom-6 right-6 z-50 rounded-2xl bg-white p-5 shadow-2xl sm:bottom-8 sm:right-8"
-            role="dialog"
-            aria-modal="false"
-            aria-label={modal === 'system' ? '系统消息' : '帮助'}
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-display text-base font-bold text-ink-900">
-                {modal === 'system' ? '系统消息' : '帮助'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModal(null)}
-                aria-label="关闭"
-                className="rounded-lg p-1.5 text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-900"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {modal === 'system' ? (
-              <ul className="space-y-2.5">
-                {SYSTEM_MESSAGES.map((message) => (
-                  <li key={message.title} className="rounded-lg bg-ink-50 px-3.5 py-2.5">
-                    <p className="flex items-center gap-2 text-sm font-medium text-ink-900">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                      {message.title}
-                    </p>
-                    <p className="mt-1 pl-3.5 text-xs leading-relaxed text-ink-500">{message.detail}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="space-y-3">
-                <div className="rounded-lg bg-brand-50 px-3.5 py-2.5">
-                  <p className="text-sm font-medium text-ink-900">项目作者</p>
-                  <p className="mt-1 text-sm text-ink-600">{PROJECT_AUTHOR}</p>
-                </div>
-                <div>
-                  <p className="mb-2 text-sm font-medium text-ink-900">使用方法</p>
-                  <div className="space-y-2.5">
-                    {USAGE_GUIDE.map((section) => (
-                      <div key={section.role} className="rounded-lg bg-ink-50 px-3.5 py-2.5">
-                        <p className="text-sm font-medium text-ink-900">{section.role}</p>
-                        <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-600">
-                          {section.points.map((point) => (
-                            <li key={point}>{point}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
