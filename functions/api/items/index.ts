@@ -3,7 +3,15 @@
  *   GET  —— 获取商品列表（学生仅见上架商品，管理员可见全部）
  *   POST —— 添加商品（管理员）
  */
-import { HttpError, jsonResponse, optionalString, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
+import {
+  HttpError,
+  jsonResponse,
+  optionalString,
+  readJson,
+  requireInt,
+  requireString,
+  translateDbError,
+} from '../../lib/http';
 import { requireAdmin, requireAuth } from '../../lib/auth';
 import { createAdminClient, createUserClient } from '../../lib/supabase';
 import type { Env, Item } from '../../lib/types';
@@ -60,8 +68,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
   }
 
-  // 下载次数限制（0=不限制）
-  const downloadLimit = requireInt(body.download_limit ?? 0, '下载次数限制', { min: 0, max: 1000000 });
+  // 下载次数限制（0=不限制）：空值或 0 表示不限制
+  let downloadLimit = 0;
+  if (
+    body.download_limit !== undefined &&
+    body.download_limit !== null &&
+    body.download_limit !== ''
+  ) {
+    downloadLimit = requireInt(body.download_limit, '下载次数限制', { min: 0, max: 1000000 });
+  }
 
   const { data, error } = await createAdminClient(env)
     .from('items')
