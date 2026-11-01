@@ -48,10 +48,11 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<SettingTab>('password');
   const [updating, setUpdating] = useState(false);
-  /** 是否允许自助修改个人信息（默认允许，读取失败时不阻塞用户） */
-  const [allowProfileEdit, setAllowProfileEdit] = useState(true);
+  /** 是否允许自助修改个人信息（默认关闭，读取到管理员配置后再放开） */
+  const [allowProfileEdit, setAllowProfileEdit] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  // 读取系统配置：管理员可关闭「学生自助修改个人信息」
+  // 读取系统配置：管理员可在「系统设置」中开关「学生自助修改个人信息」
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -59,11 +60,12 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
         const settings = await userApi.getSystemSettings();
         if (cancelled) return;
         const record = settings.find((item) => item.key === 'allow_profile_edit');
-        if (record) {
-          setAllowProfileEdit(record.value?.enabled !== false);
-        }
+        setAllowProfileEdit(record?.value?.enabled === true);
       } catch {
-        // 配置读取失败时保持默认允许，避免影响正常使用
+        // 读取失败按关闭处理（与后端一致）
+        if (!cancelled) setAllowProfileEdit(false);
+      } finally {
+        if (!cancelled) setSettingsLoaded(true);
       }
     })();
     return () => {
@@ -139,7 +141,7 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
     }
   };
 
-  const permissionsLocked = !allowProfileEdit;
+  const permissionsLocked = !settingsLoaded || !allowProfileEdit;
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -211,11 +213,13 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
       {activeTab === 'profile' && (
         <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink-900">个人资料</h2>
-          {permissionsLocked ? (
+          {!settingsLoaded ? (
+            <p className="mb-6 text-sm text-ink-400">正在读取权限配置…</p>
+          ) : permissionsLocked ? (
             <div className="mb-6 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <Lock className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                管理员已关闭「自助修改个人信息」功能，昵称与学号需由管理员在「学生管理」中调整。
+                管理员已关闭「自助修改个人信息」功能。如需修改昵称或学号，请联系管理员在「学生管理」中调整。
               </span>
             </div>
           ) : (

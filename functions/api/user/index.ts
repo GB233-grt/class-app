@@ -15,7 +15,7 @@ interface ProfileBody {
   old_password?: string;
 }
 
-/** 读取系统配置：是否允许学生自助修改个人信息 */
+/** 读取系统配置：是否允许学生自助修改个人信息（默认关闭） */
 async function isProfileEditAllowed(env: Env): Promise<boolean> {
   try {
     const { data, error } = await createAdminClient(env)
@@ -23,13 +23,13 @@ async function isProfileEditAllowed(env: Env): Promise<boolean> {
       .select('value')
       .eq('key', 'allow_profile_edit')
       .maybeSingle();
-    // 配置缺失或表未创建时默认允许，避免影响正常使用
-    if (error || !data) return true;
+    // 配置缺失（含表未创建）时按「关闭」处理：默认不允许自助修改
+    if (error || !data) return false;
     const raw = typeof data.value === 'string' ? data.value : JSON.stringify(data.value ?? {});
     const parsed = JSON.parse(raw) as { enabled?: boolean };
-    return parsed.enabled !== false;
+    return parsed.enabled === true;
   } catch {
-    return true;
+    return false;
   }
 }
 

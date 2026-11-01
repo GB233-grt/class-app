@@ -3,7 +3,7 @@
  * 目前包含：是否允许学生自助修改个人信息（昵称 / 学号）
  */
 import { useEffect, useState } from 'react';
-import { Globe, Loader2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Globe, Loader2, ShieldCheck } from 'lucide-react';
 import { adminApi } from '../../../api';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../common/Button';
@@ -14,7 +14,10 @@ export function SystemSettingsPanel() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [allowProfileEdit, setAllowProfileEdit] = useState(true);
+  /** 默认关闭：与数据库默认值保持一致 */
+  const [allowProfileEdit, setAllowProfileEdit] = useState(false);
+  /** 读取配置失败时的提示（通常是未执行 10_system_settings.sql） */
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,11 +26,12 @@ export function SystemSettingsPanel() {
         const list = await adminApi.systemSettings.list();
         if (cancelled) return;
         const record = list.find((item) => item.key === 'allow_profile_edit');
-        if (record) {
-          setAllowProfileEdit(record.value?.enabled !== false);
-        }
+        setAllowProfileEdit(record?.value?.enabled === true);
       } catch (err) {
-        if (!cancelled) showToast('error', getErrorMessage(err, '读取系统配置失败'));
+        if (cancelled) return;
+        const message = getErrorMessage(err, '读取系统配置失败');
+        setLoadError(message);
+        showToast('error', message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -41,12 +45,15 @@ export function SystemSettingsPanel() {
     setSaving(true);
     try {
       await adminApi.systemSettings.update('allow_profile_edit', { enabled: allowProfileEdit });
+      setLoadError(null);
       showToast(
         'success',
-        allowProfileEdit ? '已允许学生修改个人信息' : '已禁止学生修改个人信息',
+        allowProfileEdit ? '已允许学生自助修改个人信息' : '已禁止学生自助修改个人信息',
       );
     } catch (err) {
-      showToast('error', getErrorMessage(err, '保存系统配置失败'));
+      const message = getErrorMessage(err, '保存系统配置失败');
+      setLoadError(message);
+      showToast('error', message);
     } finally {
       setSaving(false);
     }
@@ -63,6 +70,13 @@ export function SystemSettingsPanel() {
 
   return (
     <div className="animate-fade-up space-y-6">
+      {loadError && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{loadError}</span>
+        </div>
+      )}
+
       <Card className="p-6">
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-ink-900">
           <ShieldCheck className="h-5 w-5 text-brand-600" />
@@ -70,7 +84,8 @@ export function SystemSettingsPanel() {
         </h2>
         <p className="mb-6 text-sm text-ink-500">
           控制学生 / 教师是否可以在「设置 → 个人资料」中自助修改昵称和学号。
-          关闭后，前端表单会被禁用，后端接口同样会拒绝修改请求，需由管理员在「学生管理」中调整。
+          <span className="font-medium text-ink-700">默认关闭</span>
+          ，关闭时前端表单会被禁用、后端接口同样会拒绝修改请求，需由管理员在「学生管理」中代为调整。
         </p>
 
         <div className="flex items-center justify-between rounded-lg border border-ink-200 px-4 py-4">
@@ -109,7 +124,7 @@ export function SystemSettingsPanel() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <Button onClick={() => void handleSave()} loading={saving}>
+          <Button onClick={() => void handleSave()} loading={saving} disabled={Boolean(loadError)}>
             保存设置
           </Button>
         </div>
