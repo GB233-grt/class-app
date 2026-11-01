@@ -34,15 +34,15 @@ interface SidebarLayoutProps {
   groups: SidebarNavGroup[];
   activeKey: string;
   onNavigate: (key: string) => void;
-  /** 特色功能区（卡片 + 胶囊 CTA） */
-  feature: {
+  /** 特色功能区（卡片 + 胶囊 CTA），不传则不展示 */
+  feature?: {
     title: string;
     description?: string;
     cta: string;
     onCta: () => void;
   };
-  /** 最近记录区 */
-  history: {
+  /** 最近记录区，不传则不展示 */
+  history?: {
     title: string;
     items: { id: string; text: string }[];
     onViewAll: () => void;
@@ -161,7 +161,7 @@ function SidebarContent({
         ))}
 
         {/* 特色功能区：卡片 + 胶囊 CTA */}
-        {!collapsed && (
+        {feature && !collapsed && (
           <div className="px-3 pb-4">
             <div className="rounded-xl border border-ink-100 bg-gradient-to-br from-ink-50 to-white p-3.5 shadow-soft">
               <div className="flex items-center gap-3">
@@ -187,7 +187,7 @@ function SidebarContent({
         )}
 
         {/* 最近记录区 */}
-        {!collapsed && (
+        {history && !collapsed && (
           <div className="border-t border-ink-100 px-3 py-3">
             <p className="flex items-center gap-1.5 px-1.5 pb-2 text-xs font-medium text-ink-400">
               <History className="h-3.5 w-3.5" />

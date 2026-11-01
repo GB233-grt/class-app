@@ -2,18 +2,19 @@
  * 学生仪表盘：侧边栏导航（积分商店 / 我的记录）+ 积分卡片 + 统计 + 面板
  */
 import { useMemo, useState } from 'react';
-import { Coins, Gift, ReceiptText, ScrollText, ShoppingBag, Trophy } from 'lucide-react';
+import { Coins, Gift, ReceiptText, ScrollText, Settings, ShoppingBag, Trophy } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
 import { StorePanel } from '../components/feature/student/StorePanel';
 import { RedemptionsPanel } from '../components/feature/student/RedemptionsPanel';
 import { LedgerPanel } from '../components/feature/student/LedgerPanel';
 import { LeaderboardPanel } from '../components/feature/student/LeaderboardPanel';
+import { SettingsPanel } from '../components/feature/settings/SettingsPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useRedemptions } from '../hooks/useRedemptions';
 import { formatPoints } from '../lib/utils';
 
-type StudentTabKey = 'store' | 'history' | 'ledger' | 'leaderboard';
+type StudentTabKey = 'store' | 'history' | 'ledger' | 'leaderboard' | 'settings';
 
 const GROUPS: SidebarNavGroup[] = [
   {
@@ -27,6 +28,10 @@ const GROUPS: SidebarNavGroup[] = [
       { key: 'ledger', label: '积分明细', icon: ScrollText },
       { key: 'leaderboard', label: '排行榜', icon: Trophy },
     ],
+  },
+  {
+    title: '我的账户',
+    items: [{ key: 'settings', label: '设置', icon: Settings }],
   },
 ];
 
@@ -50,18 +55,21 @@ export default function StudentDashboard() {
     [redemptions],
   );
 
+  // 设置页不需要侧边栏的特色/历史卡片
+  const isSettings = activeTab === 'settings';
+
   return (
     <SidebarLayout
       groups={GROUPS}
       activeKey={activeTab}
       onNavigate={(key) => setActiveTab(key as StudentTabKey)}
-      feature={{
+      feature={isSettings ? undefined : {
         title: '积分排行榜',
         description: '看看你在全校排第几名',
         cta: '查看排行',
         onCta: () => setActiveTab('leaderboard'),
       }}
-      history={{
+      history={isSettings ? undefined : {
         title: '最近兑换',
         items: redemptions.slice(0, 4).map((record) => ({
           id: record.id,
@@ -122,6 +130,7 @@ export default function StudentDashboard() {
         )}
         {activeTab === 'ledger' && <LedgerPanel />}
         {activeTab === 'leaderboard' && <LeaderboardPanel />}
+        {activeTab === 'settings' && <SettingsPanel profile={profile!} onUpdated={() => void refreshRedemptions()} />}
       </div>
     </SidebarLayout>
   );

@@ -17,6 +17,19 @@ export interface Student {
   created_at: string;
 }
 
+/** 修改密码请求参数 */
+export interface ChangePasswordPayload {
+  old_password: string;
+  new_password: string;
+  confirm_password: string;
+}
+
+/** 更新资料请求参数 */
+export interface UpdateProfilePayload {
+  name?: string;
+  student_no?: string;
+}
+
 /** 商品/物品（items 表） */
 export interface Item {
   id: string;

@@ -7,6 +7,7 @@ import type {
   AwardBatchResponse,
   AwardPayload,
   AwardResponse,
+  ChangePasswordPayload,
   CreateItemPayload,
   CreateStudentPayload,
   FulfillmentStatus,
@@ -18,6 +19,7 @@ import type {
   StaffRedemption,
   Stats,
   Student,
+  UpdateProfilePayload,
 } from '../types';
 
 /** 登录接口返回的会话数据 */
@@ -32,6 +34,9 @@ export interface LoginResponse {
 export const authApi = {
   /** 获取当前登录用户资料 */
   me: () => api.get<Student>('/auth/me'),
+  /** 修改登录密码（已登录态 + 旧密码确认） */
+  changePassword: (payload: ChangePasswordPayload) =>
+    api.post<{ message: string }>('/auth/change-password', payload),
   /** 邮箱密码登录（turnstileToken 为 Cloudflare 人机验证令牌，启用时必传） */
   login: (email: string, password: string, turnstileToken?: string) =>
     api.post<LoginResponse>('/auth/login', { email, password, cf_turnstile_token: turnstileToken }),
@@ -67,6 +72,16 @@ export const studentsApi = {
   award: (payload: AwardPayload) => api.post<AwardResponse>('/students/award', payload),
   /** 批量加分（教师/管理员）：判断公式 + Excel 判断值，服务端重算后单事务入账 */
   awardBatch: (payload: AwardBatchPayload) => api.post<AwardBatchResponse>('/students/award-batch', payload),
+};
+
+/** 当前用户资料（设置中心） */
+export const userApi = {
+  /** 获取当前用户资料 */
+  me: () => api.get<Student>('/user'),
+  /** 更新当前用户资料（昵称 / 学号） */
+  update: (payload: UpdateProfilePayload) => api.put<Student>('/user', payload),
+  /** 注销账号（旧密码确认，不可逆） */
+  deleteAccount: () => api.delete<{ message: string }>('/user'),
 };
 
 /** 物品兑换 */

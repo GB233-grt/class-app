@@ -72,6 +72,44 @@ export const NEW_ITEM_FORM: ItemFormValues = {
   download_limit: '',
 };
 
+/** 密码强度规则（8 位以上 + 大小写 + 数字 + 特殊字符） */
+export const passwordStrengthExp = {
+  minLength: 8,
+  upper: /[A-Z]/,
+  lower: /[a-z]/,
+  digit: /[0-9]/,
+  special: /[!@#$%^&*()_\-+=\[\]{};:'"\\|,.<>\/?~`]/,
+};
+
+/** 校验新密码强度，返回 null 表示通过 */
+export function checkPasswordStrength(password: string): string | null {
+  if (password.length < passwordStrengthExp.minLength) {
+    return `密码长度不能少于 ${passwordStrengthExp.minLength} 位`;
+  }
+  if (!passwordStrengthExp.upper.test(password)) return '密码必须包含大写英文字母';
+  if (!passwordStrengthExp.lower.test(password)) return '密码必须包含小写英文字母';
+  if (!passwordStrengthExp.digit.test(password)) return '密码必须包含数字';
+  if (!passwordStrengthExp.special.test(password)) return '密码必须包含特殊字符（如 ! @ # $ %）';
+  return null;
+}
+
+/** 修改密码表单 */
+export const passwordFormSchema = z.object({
+  old_password: z.string().min(1, '请输入旧密码'),
+  new_password: z.string().min(1, '请输入新密码'),
+  confirm_password: z.string().min(1, '请再次确认新密码'),
+});
+
+export type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
+/** 个人资料修改表单 */
+export const profileFormSchema = z.object({
+  name: z.string().trim().min(1, '请输入昵称').max(20, '昵称不能超过 20 个字'),
+  student_no: z.string().trim().max(20, '学号不能超过 20 个字'),
+});
+
+export type ProfileFormValues = z.infer<typeof profileFormSchema>;
+
 /** 创建学生/教师表单 */
 export const studentFormSchema = z.object({
   name: z.string().trim().min(1, '请输入姓名').max(20, '姓名不能超过 20 个字'),
