@@ -1,7 +1,7 @@
 /**
  * GET/PUT/DELETE /api/user —— 当前登录用户的资料（个人信息面板）
  *   GET  → 返回 students 表资料
- *   PUT  → 更新昵称/学号（所有登录用户均可修改自己的资料）
+ *   PUT  → 更新昵称/学号（是否允许由管理员在「系统设置」中控制）
  *   DELETE → 注销账号（需要旧密码二次确认，彻底清除账号与关联数据）
  */
 import { HttpError, jsonResponse, optionalString, readJson, requireString, translateDbError } from '../../lib/http';
@@ -15,6 +15,24 @@ interface ProfileBody {
   old_password?: string;
 }
 
+/** 读取系统配置：是否允许学生自助修改个人信息 */
+async function isProfileEditAllowed(env: Env): Promise<boolean> {
+  try {
+    const { data, error } = await createAdminClient(env)
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'allow_profile_edit')
+      .maybeSingle();
+    // 配置缺失或表未创建时默认允许，避免影响正常使用
+    if (error || !data) return true;
+    const raw = typeof data.value === 'string' ? data.value : JSON.stringify(data.value ?? {});
+    const parsed = JSON.parse(raw) as { enabled?: boolean };
+    return parsed.enabled !== false;
+  } catch {
+    return true;
+  }
+}
+
 // 获取当前用户资料
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireAuth(env, request);
@@ -26,12 +44,27 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireAuth(env, request);
   const body = await readJson<ProfileBody>(request);
 
-  const name = optionalString(body.name, 20);
-  const studentNo = optionalString(body.student_no, 20);
+  // 管理员可在系统设置中关闭自助修改
+  const allowed = await isProfileEditAllowed(env);
+  if (!allowed) {
+    throw new HttpError(403, '管理员已关闭自助修改个人信息功能，请联系管理员');
+  }
+
+  // 只更新请求中出现的字段，避免漏传字段被置空
+  const updates: { name?: string; student_no?: string | null } = {};
+  if (Object.prototype.hasOwnProperty.call(body, 'name')) {
+    updates.name = requireString(body.name, '昵称', { max: 20 });
+  }
+  if (Object.prototype.hasOwnProperty.call(body, 'student_no')) {
+    updates.student_no = optionalString(body.student_no, 20);
+  }
+  if (Object.keys(updates).length === 0) {
+    throw new HttpError(400, '没有需要更新的内容');
+  }
 
   const { data, error } = await createAdminClient(env)
     .from('students')
-    .update({ name, student_no: studentNo })
+    .update(updates)
     .eq('id', ctx.userId)
     .select('name, student_no')
     .maybeSingle();

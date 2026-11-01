@@ -36,7 +36,7 @@ const GROUPS: SidebarNavGroup[] = [
 ];
 
 export default function StudentDashboard() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<StudentTabKey>('store');
   const {
     redemptions,
@@ -130,7 +130,9 @@ export default function StudentDashboard() {
         )}
         {activeTab === 'ledger' && <LedgerPanel />}
         {activeTab === 'leaderboard' && <LeaderboardPanel />}
-        {activeTab === 'settings' && <SettingsPanel profile={profile!} onUpdated={() => void refreshRedemptions()} />}
+        {activeTab === 'settings' && profile && (
+          <SettingsPanel profile={profile} onUpdated={() => void refreshProfile()} />
+        )}
       </div>
     </SidebarLayout>
   );

@@ -102,5 +102,12 @@ export function translateDbError(message: string): string {
   if (message.includes('items') && message.match(/type|download_url|download_limit/)) {
     return '数据库尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/09_item_types.sql 后重试';
   }
+  // database/migrations/10_system_settings.sql
+  if (
+    (message.includes('system_settings') || message.includes('relation')) &&
+    (message.includes('does not exist') || message.includes('不存在'))
+  ) {
+    return '数据库尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/10_system_settings.sql 后重试';
+  }
   return message || '操作失败，请稍后重试';
 }

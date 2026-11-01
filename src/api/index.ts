@@ -74,14 +74,37 @@ export const studentsApi = {
   awardBatch: (payload: AwardBatchPayload) => api.post<AwardBatchResponse>('/students/award-batch', payload),
 };
 
+/** 系统配置项 */
+export interface SystemSettingRecord {
+  key: string;
+  value: { enabled?: boolean } & Record<string, unknown>;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 /** 当前用户资料（设置中心） */
 export const userApi = {
   /** 获取当前用户资料 */
   me: () => api.get<Student>('/user'),
+  /** 获取对普通用户可见的系统配置（只读） */
+  getSystemSettings: () => api.get<SystemSettingRecord[]>('/user/system-settings'),
   /** 更新当前用户资料（昵称 / 学号） */
   update: (payload: UpdateProfilePayload) => api.put<Student>('/user', payload),
   /** 注销账号（旧密码确认，不可逆） */
-  deleteAccount: () => api.delete<{ message: string }>('/user'),
+  deleteAccount: (password: string) => api.delete<{ message: string }>('/user', { old_password: password }),
+};
+
+/** 管理员设置（管理员） */
+export const adminApi = {
+  /** 系统配置管理 */
+  systemSettings: {
+    /** 获取所有系统配置 */
+    list: () => api.get<SystemSettingRecord[]>('/admin/system-settings'),
+    /** 更新系统配置 */
+    update: (key: string, value: SystemSettingRecord['value']) =>
+      api.post<SystemSettingRecord>('/admin/system-settings', { key, value }),
+  },
 };
 
 /** 物品兑换 */
