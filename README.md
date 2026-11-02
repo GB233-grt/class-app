@@ -39,7 +39,7 @@ npm run pages:dev                                        # → http://localhost:
 ```
 
 数据库只需在 Supabase **SQL Editor** 里跑两个文件：`database/all-in-one/step1-schema.sql` → `step2-seed.sql`。
-完整的建库、建账号步骤见 [快速开始](#快速开始)。
+完整的建库、建账号步骤见 [快速开始](#快速开始)，遇到问题翻 [Wiki](https://github.com/GB233-grt/class-app/wiki)。
 
 | 角色 | 能做什么 |
 | --- | --- |

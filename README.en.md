@@ -39,7 +39,7 @@ npm run pages:dev                                        # → http://localhost:
 ```
 
 For the database, run two files in the Supabase **SQL Editor**: `database/all-in-one/step1-schema.sql`, then `step2-seed.sql`.
-Full setup (schema, accounts, migrations) is in [Quick Start](#quick-start).
+Full setup (schema, accounts, migrations) is in [Quick Start](#quick-start); troubleshooting lives in the [Wiki](https://github.com/GB233-grt/class-app/wiki).
 
 | Role | What they can do |
 | --- | --- |
