@@ -52,7 +52,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const itemId = requireString(body.item_id, '商品 ID');
   const quantity = requireInt(body.quantity ?? 1, '兑换数量', { min: 1, max: 99 });
 
-  const { data, error } = await createUserClient(env, ctx.token).rpc('redeem_item', {
+  const client = createUserClient(env, ctx.token);
+
+  // 惰性清理：先把已到期的商品下架，避免过期商品仍被兑换
+  try {
+    const { error: expireError } = await client.rpc('expire_items');
+    if (expireError) {
+      // 未执行 14_item_expiry.sql 时函数不存在，忽略即可
+      console.warn('[redemptions] expire_items 调用失败:', expireError.message);
+    }
+  } catch (err) {
+    console.warn('[redemptions] expire_items 调用异常:', err);
+  }
+
+  const { data, error } = await client.rpc('redeem_item', {
     p_student_id: ctx.userId,
     p_item_id: itemId,
     p_quantity: quantity,

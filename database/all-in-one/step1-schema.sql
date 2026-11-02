@@ -45,17 +45,20 @@ CREATE TABLE items (
   download_url text,                           -- 网络商品下载链接
   download_limit integer NOT NULL DEFAULT 0
     CHECK (download_limit >= 0),               -- 下载次数限制，0=不限制
+  expires_at timestamptz,                      -- 到期时间（NULL=永不过期），到期自动下架
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idx_items_cost ON items(cost ASC);
 CREATE INDEX idx_items_active ON items(is_active) WHERE is_active = true;
+CREATE INDEX idx_items_expires_at ON items(expires_at) WHERE expires_at IS NOT NULL;
 
 COMMENT ON COLUMN items.type IS '商品类型：physical=实物商品（有库存、教师线下发放），digital=网络商品（兑换后自动下发下载链接）';
 COMMENT ON COLUMN items.publish_date IS '网络商品发布日期（仅 type=digital 时有效）';
 COMMENT ON COLUMN items.download_url IS '网络商品下载链接（仅 type=digital 时有效）';
 COMMENT ON COLUMN items.download_limit IS '下载次数限制（0=不限制）';
+COMMENT ON COLUMN items.expires_at IS '商品到期时间（NULL=永不过期）；到期后自动下架';
 
 -- ============================================================
 -- 第 3 部分：兑换记录表 redemptions
@@ -335,6 +338,34 @@ GRANT EXECUTE ON FUNCTION redeem_item(uuid, uuid, integer) TO authenticated;
 
 REVOKE ALL ON FUNCTION update_redemption_status(uuid, text) FROM public, anon;
 GRANT EXECUTE ON FUNCTION update_redemption_status(uuid, text) TO authenticated;
+
+-- 商品到期自动下架：把 expires_at 已过的上架商品批量置为 is_active=false
+CREATE OR REPLACE FUNCTION expire_items()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  WITH expired AS (
+    UPDATE items
+       SET is_active = false,
+           updated_at = now()
+     WHERE is_active = true
+       AND expires_at IS NOT NULL
+       AND expires_at <= now()
+    RETURNING 1
+  )
+  SELECT count(*) INTO v_count FROM expired;
+
+  RETURN v_count;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION expire_items() FROM public, anon;
+GRANT EXECUTE ON FUNCTION expire_items() TO authenticated;
 
 -- ============================================================
 -- 第 6 部分：行级安全（RLS）

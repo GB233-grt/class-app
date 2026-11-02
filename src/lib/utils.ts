@@ -23,6 +23,26 @@ export function formatPoints(value: number): string {
   return value.toLocaleString('zh-CN');
 }
 
+/** ISO 时间 → <input type="datetime-local"> 需要的本地时间字符串（YYYY-MM-DDTHH:mm） */
+export function toDateTimeLocalValue(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
+/** <input type="datetime-local"> 的本地时间字符串 → ISO 时间（空值返回 null） */
+export function fromDateTimeLocalValue(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 /** 将 Supabase Auth 的常见英文错误翻译为中文提示 */
 export function translateAuthError(message: string): string {
   if (message.includes('Invalid login credentials')) return '邮箱或密码错误';

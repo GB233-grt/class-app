@@ -23,7 +23,20 @@ const ITEM_TYPES = ['physical', 'digital'] as const;
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireAuth(env, request);
 
-  let query = createUserClient(env, ctx.token)
+  const client = createUserClient(env, ctx.token);
+
+  // 惰性清理：先把已到期的上架商品下架（失败不影响列表，例如迁移未执行）
+  try {
+    const { error: expireError } = await client.rpc('expire_items');
+    if (expireError) {
+      // 未执行 14_item_expiry.sql 时函数不存在，忽略即可
+      console.warn('[items] expire_items 调用失败:', expireError.message);
+    }
+  } catch (err) {
+    console.warn('[items] expire_items 调用异常:', err);
+  }
+
+  let query = client
     .from('items')
     .select('*')
     .order('cost', { ascending: true })
@@ -87,6 +100,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     isActive = body.is_active;
   }
 
+  // 到期时间（可选）：留空表示永不过期
+  let expiresAt: string | null = null;
+  if (body.expires_at !== undefined && body.expires_at !== null && body.expires_at !== '') {
+    const raw = requireString(body.expires_at, '到期时间');
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new HttpError(400, '到期时间格式不正确');
+    }
+    expiresAt = parsed.toISOString();
+  }
+
   const { data, error } = await createAdminClient(env)
     .from('items')
     .insert({
@@ -100,6 +124,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       download_url: downloadUrl,
       download_limit: type === 'digital' ? downloadLimit : 0,
       is_active: isActive,
+      expires_at: expiresAt,
     })
     .select('*')
     .single();

@@ -46,6 +46,10 @@ export const itemFormSchema = z
       .refine((v) => v === '' || NON_NEGATIVE_INT.test(v), '下载次数限制必须是非负整数'),
     /** 上架状态：true=已上架，false=已下架（先存草稿） */
     is_active: z.boolean(),
+    /** 到期时间（datetime-local 字符串；空 = 永不过期） */
+    expires_at: z
+      .string()
+      .refine((v) => v === '' || !Number.isNaN(new Date(v).getTime()), '到期时间格式不正确'),
   })
   .superRefine((data, ctx) => {
     if (data.type === 'digital') {
@@ -72,6 +76,7 @@ export const NEW_ITEM_FORM: ItemFormValues = {
   download_url: '',
   download_limit: '',
   is_active: true,
+  expires_at: '',
 };
 
 /** 密码强度规则（8 位以上 + 大小写 + 数字 + 特殊字符） */

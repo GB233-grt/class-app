@@ -56,6 +56,20 @@ export const onRequestPut: PagesFunction<Env, 'id'> = async ({ params, request, 
     update.is_active = body.is_active;
   }
 
+  // 到期时间：不传 = 不修改；传 null 或空串 = 清除（永不过期）；否则按 ISO 时间保存
+  if (body.expires_at !== undefined) {
+    if (body.expires_at === null || body.expires_at === '') {
+      update.expires_at = null;
+    } else {
+      const raw = requireString(body.expires_at, '到期时间');
+      const parsed = new Date(raw);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new HttpError(400, '到期时间格式不正确');
+      }
+      update.expires_at = parsed.toISOString();
+    }
+  }
+
   const { data, error } = await createAdminClient(env)
     .from('items')
     .update(update)

@@ -43,6 +43,8 @@ export interface Item {
   publish_date: string | null;
   download_url: string | null;
   download_limit: number;
+  /** 到期时间（null = 永不过期），到期后自动下架 */
+  expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -52,23 +54,6 @@ export type FulfillmentStatus = 'pending' | 'fulfilled';
 
 /** 商品类型 */
 export type ItemType = 'physical' | 'digital';
-
-/** 商品/物品（items 表） */
-export interface Item {
-  id: string;
-  name: string;
-  description: string | null;
-  cost: number;
-  stock: number;
-  image_url: string | null;
-  is_active: boolean;
-  type: ItemType;
-  publish_date: string | null;
-  download_url: string | null;
-  download_limit: number;
-  created_at: string;
-  updated_at: string;
-}
 
 /** 兑换记录（redemptions 表） */
 export interface Redemption {
@@ -134,6 +119,8 @@ export interface CreateItemPayload {
   download_limit?: number;
   /** 上架状态：false 表示先放进「已下架」分组（不传默认 true 上架） */
   is_active?: boolean;
+  /** 到期时间（ISO 字符串；不传或 null 表示永不过期） */
+  expires_at?: string | null;
 }
 
 /** 创建用户请求体（支持角色选择：学生/教师） */

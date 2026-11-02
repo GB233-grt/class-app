@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Coins, Gift, Minus, Plus, Shield } from 'lucide-react';
 import { Button } from '../common/Button';
-import { cn, formatPoints } from '../../lib/utils';
+import { cn, formatDateTime, formatPoints } from '../../lib/utils';
 import type { Item } from '../../types';
 
 interface ItemCardProps {
@@ -93,6 +93,11 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
               </>
             )}
           </span>
+          {item.expires_at && (
+            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700">
+              限时至 {formatDateTime(item.expires_at)}
+            </span>
+          )}
         </div>
 
         {/* 数量选择器：可兑换时展示 */}

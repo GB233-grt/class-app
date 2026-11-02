@@ -22,7 +22,7 @@ import { DataTable, type DataTableColumn } from '../../common/DataTable';
 import { Input } from '../../common/Input';
 import { Textarea } from '../../common/Textarea';
 import { ErrorNotice } from '../../common/States';
-import { cn, formatPoints, getErrorMessage } from '../../../lib/utils';
+import { cn, formatDateTime, formatPoints, fromDateTimeLocalValue, getErrorMessage, toDateTimeLocalValue } from '../../../lib/utils';
 import { itemFormSchema, NEW_ITEM_FORM, type ItemFormValues } from '../../../lib/validation';
 import type { Item } from '../../../types';
 
@@ -39,6 +39,13 @@ function ItemTag({ item }: { item: Item }) {
       实物商品
     </span>
   );
+}
+
+/** 判断到期时间是否已过 */
+function isExpired(iso: string | null): boolean {
+  if (!iso) return false;
+  const time = new Date(iso).getTime();
+  return !Number.isNaN(time) && time <= Date.now();
 }
 
 /** 商品分组：已上架 / 已下架 */
@@ -97,6 +104,7 @@ export function ItemsPanel() {
       download_url: item.download_url ?? '',
       download_limit: String(item.download_limit ?? 0),
       is_active: item.is_active,
+      expires_at: toDateTimeLocalValue(item.expires_at),
     });
   };
 
@@ -122,6 +130,7 @@ export function ItemsPanel() {
           ? Number(values.download_limit)
           : 0,
       is_active: values.is_active,
+      expires_at: fromDateTimeLocalValue(values.expires_at),
     };
     try {
       if (editingItem) {
@@ -190,6 +199,20 @@ export function ItemsPanel() {
           {formatPoints(item.stock)}
         </span>
       ),
+    },
+    {
+      header: '到期',
+      render: (item) =>
+        item.expires_at ? (
+          <span className="whitespace-nowrap text-xs text-ink-600">
+            {formatDateTime(item.expires_at)}
+            {isExpired(item.expires_at) && (
+              <span className="ml-1 rounded bg-red-50 px-1 text-red-600">已到期</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-xs text-ink-400">永不过期</span>
+        ),
     },
     {
       header: '操作',
@@ -390,6 +413,15 @@ export function ItemsPanel() {
             placeholder="https://…（选填）"
             error={errors.image_url?.message}
             {...register('image_url')}
+          />
+
+          {/* 到期时间：到点后自动下架（实物 / 网络商品通用） */}
+          <Input
+            label="到期时间（留空 = 永不过期）"
+            type="datetime-local"
+            hint="到达该时间后商品会自动下架，历史兑换记录保留，可改时间后重新上架"
+            error={errors.expires_at?.message}
+            {...register('expires_at')}
           />
 
           {/* 上架状态：决定商品进入哪个分组 */}
