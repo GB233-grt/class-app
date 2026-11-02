@@ -173,12 +173,15 @@ export function ItemsPanel() {
     },
     {
       header: '积分价格',
-      render: (item) => (
-        <span className="flex items-center gap-1 font-semibold text-brand-600">
-          <Coins className="h-3.5 w-3.5" />
-          {formatPoints(item.cost)}
-        </span>
-      ),
+      render: (item) =>
+        item.cost === 0 ? (
+          <span className="font-semibold text-emerald-600">免费</span>
+        ) : (
+          <span className="flex items-center gap-1 font-semibold text-brand-600">
+            <Coins className="h-3.5 w-3.5" />
+            {formatPoints(item.cost)}
+          </span>
+        ),
     },
     {
       header: '库存',
@@ -346,8 +349,9 @@ export function ItemsPanel() {
             <Input
               label="积分价格"
               type="number"
-              min={1}
-              placeholder="30"
+              min={0}
+              placeholder="30（0 = 免费）"
+              hint="填 0 表示免费商品，不消耗学生积分"
               error={errors.cost?.message}
               {...register('cost')}
             />

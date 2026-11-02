@@ -27,8 +27,7 @@ export const itemFormSchema = z
     cost: z
       .string()
       .min(1, '请输入积分价格')
-      .refine((v) => POSITIVE_INT.test(v), '积分价格必须是正整数')
-      .refine((v) => Number(v) > 0, '积分价格必须大于 0'),
+      .refine((v) => NON_NEGATIVE_INT.test(v), '积分价格必须是非负整数（0 表示免费）'),
     stock: z
       .string()
       .min(1, '请输入库存')

@@ -24,7 +24,9 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
   const [qty, setQty] = useState(1);
 
   // 库存对实物商品和网络商品都生效（网络商品也能用库存控制可兑换次数）
-  const maxAffordable = item.cost > 0 ? Math.floor(points / item.cost) : 0;
+  // 0 积分 = 免费商品，不受积分余额限制
+  const isFree = item.cost === 0;
+  const maxAffordable = isFree ? 99 : Math.floor(points / item.cost);
   const maxQty = Math.max(0, Math.min(item.stock, maxAffordable, 99));
   const effectiveQty = Math.min(qty, maxQty);
   const total = item.cost * effectiveQty;
@@ -82,8 +84,14 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
 
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-1 font-semibold text-brand-600">
-            <Coins className="h-4 w-4" />
-            {formatPoints(item.cost)} 积分
+            {isFree ? (
+              '免费'
+            ) : (
+              <>
+                <Coins className="h-4 w-4" />
+                {formatPoints(item.cost)} 积分
+              </>
+            )}
           </span>
         </div>
 
@@ -120,7 +128,13 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
         {/* 合计积分 */}
         {!soldOut && !insufficient && (
           <p className="text-xs text-ink-500">
-            合计 <span className="font-semibold text-ink-900">{formatPoints(total)}</span> 积分
+            {isFree ? (
+              <span className="font-semibold text-emerald-600">免费商品，不消耗积分</span>
+            ) : (
+              <>
+                合计 <span className="font-semibold text-ink-900">{formatPoints(total)}</span> 积分
+              </>
+            )}
             {effectiveQty >= maxQty && maxQty > 1 && (
               <span className="ml-1 text-amber-600">
                 （已达
@@ -145,8 +159,8 @@ export function ItemCard({ item, points, redeeming = false, onRedeem, delay = 0 
               ? '积分不足'
               : redeeming
                 ? '兑换中…'
-                : item.type === 'digital'
-                  ? `立即兑换（${formatPoints(total)} 积分）`
+                : isFree
+                  ? '免费兑换'
                   : `立即兑换（${formatPoints(total)} 积分）`}
         </Button>
       </div>

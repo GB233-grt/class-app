@@ -48,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const body = await readJson<Record<string, unknown>>(request);
   const name = requireString(body.name, '商品名称', { max: 50 });
   const description = optionalString(body.description, 200);
-  const cost = requireInt(body.cost, '积分价格', { min: 1, max: 1000000 });
+  const cost = requireInt(body.cost, '积分价格', { min: 0, max: 1000000 });
   const stock = requireInt(body.stock, '库存', { min: 0, max: 1000000 });
   const imageUrl = optionalString(body.image_url, 500);
 

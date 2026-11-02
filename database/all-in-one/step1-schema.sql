@@ -34,7 +34,7 @@ CREATE TABLE items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,                          -- 商品名称
   description text,                            -- 商品描述
-  cost integer NOT NULL CHECK (cost > 0),      -- 兑换所需积分（单价）
+  cost integer NOT NULL CHECK (cost >= 0),      -- 兑换所需积分（0 = 免费商品）（单价）
   stock integer NOT NULL DEFAULT 0
     CHECK (stock >= 0),                        -- 库存数量
   image_url text,                              -- 商品图片URL
@@ -207,7 +207,8 @@ BEGIN
     RAISE EXCEPTION '学生不存在';
   END IF;
   v_total := v_cost * p_quantity;
-  IF v_balance < v_total THEN
+  -- 免费商品（v_total = 0）无需校验余额
+  IF v_total > 0 AND v_balance < v_total THEN
     RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
   END IF;
 
@@ -218,8 +219,10 @@ BEGIN
 
   v_new_balance := v_balance - v_total;
 
-  -- 扣积分 + 扣库存（两类商品都要执行）
-  UPDATE students SET points = v_new_balance WHERE id = p_student_id;
+  -- 扣积分（0 积分商品不产生余额变化）+ 扣库存
+  IF v_total > 0 THEN
+    UPDATE students SET points = v_new_balance WHERE id = p_student_id;
+  END IF;
   UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
 
   IF v_type = 'digital' THEN
@@ -232,24 +235,29 @@ BEGIN
     VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'fulfilled', v_download_url)
     RETURNING id INTO v_redemptionId;
 
-    INSERT INTO points_ledger (student_id, delta, balance_after, reason)
-    VALUES (
-      p_student_id, -v_total, v_new_balance,
-      '兑换商品：' || v_name
-        || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
-        || '（已发放下载链接，请到兑换记录查看）'
-    );
+    -- 只有真正产生积分变化时才写积分明细，避免出现 "+0" 记录
+    IF v_total > 0 THEN
+      INSERT INTO points_ledger (student_id, delta, balance_after, reason)
+      VALUES (
+        p_student_id, -v_total, v_new_balance,
+        '兑换商品：' || v_name
+          || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
+          || '（已发放下载链接，请到兑换记录查看）'
+      );
+    END IF;
   ELSE
     -- 实物商品：待教师线下发放（快照商品名称与单价，防止商品变更后历史记录失真）
     INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity, status, download_url)
     VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'pending', NULL)
     RETURNING id INTO v_redemptionId;
 
-    INSERT INTO points_ledger (student_id, delta, balance_after, reason)
-    VALUES (
-      p_student_id, -v_total, v_new_balance,
-      '兑换商品：' || v_name || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
-    );
+    IF v_total > 0 THEN
+      INSERT INTO points_ledger (student_id, delta, balance_after, reason)
+      VALUES (
+        p_student_id, -v_total, v_new_balance,
+        '兑换商品：' || v_name || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
+      );
+    END IF;
   END IF;
 
   RETURN QUERY VALUES (v_redemptionId, v_new_balance);
