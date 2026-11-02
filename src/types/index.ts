@@ -132,6 +132,8 @@ export interface CreateItemPayload {
   download_url?: string | null;
   /** 下载次数限制，0=不限制（网络商品） */
   download_limit?: number;
+  /** 上架状态：false 表示先放进「已下架」分组（不传默认 true 上架） */
+  is_active?: boolean;
 }
 
 /** 创建用户请求体（支持角色选择：学生/教师） */

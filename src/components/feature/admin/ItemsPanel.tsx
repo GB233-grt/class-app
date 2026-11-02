@@ -1,14 +1,18 @@
 /**
- * 商品管理面板：商品列表（表格）+ 添加/编辑商品表单
+ * 商品管理面板：商品列表（已上架 / 已下架 两个分组）+ 添加/编辑商品表单
  *
  * 商品类型：
  *   实物商品：有库存，学生兑换后教师线下发放
- *   网络商品：不扣库存，交换后自动下发下载链接
+ *   网络商品：不扣库存，兑换后自动下发下载链接
+ *
+ * 上架状态：
+ *   已上架：学生端可见、可兑换
+ *   已下架：学生端不可见，但商品与历史兑换记录保留，可随时重新上架
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Coins, Package, Pencil, Plus, Shield, X } from 'lucide-react';
+import { Coins, Eye, EyeOff, Package, Pencil, Plus, Shield, X } from 'lucide-react';
 import { itemsApi } from '../../../api';
 import { useItems } from '../../../hooks/useItems';
 import { useToast } from '../../../hooks/useToast';
@@ -37,11 +41,21 @@ function ItemTag({ item }: { item: Item }) {
   );
 }
 
+/** 商品分组：已上架 / 已下架 */
+type StatusTab = 'active' | 'inactive';
+
+const STATUS_TABS: { key: StatusTab; label: string }[] = [
+  { key: 'active', label: '已上架' },
+  { key: 'inactive', label: '已下架' },
+];
+
 export function ItemsPanel() {
   const { items, loading, error, refresh } = useItems();
   const { showToast } = useToast();
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  /** 当前查看的分组（默认已上架） */
+  const [statusTab, setStatusTab] = useState<StatusTab>('active');
+  /** 正在切换上架状态的商品 ID */
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   /** 当前正在编辑的商品（null = 表单处于添加模式） */
   const [editingItem, setEditingItem] = useState<Item | null>(null);
 
@@ -58,11 +72,21 @@ export function ItemsPanel() {
 
   // 商品类型（控制网络商品专属字段的显示与隐藏）
   const itemType = useWatch({ name: 'type', control });
+  // 表单里的上架状态（用于提示文案）
+  const formIsActive = useWatch({ name: 'is_active', control });
+
+  // 两个分组的商品与数量
+  const activeItems = useMemo(() => items.filter((item) => item.is_active), [items]);
+  const inactiveItems = useMemo(() => items.filter((item) => !item.is_active), [items]);
+  const counts: Record<StatusTab, number> = {
+    active: activeItems.length,
+    inactive: inactiveItems.length,
+  };
+  const visibleItems = statusTab === 'active' ? activeItems : inactiveItems;
 
   // 进入编辑模式：用该商品当前值填充表单
   const startEdit = (item: Item) => {
     setEditingItem(item);
-    setConfirmId(null);
     reset({
       name: item.name,
       description: item.description ?? '',
@@ -72,6 +96,7 @@ export function ItemsPanel() {
       type: item.type,
       download_url: item.download_url ?? '',
       download_limit: String(item.download_limit ?? 0),
+      is_active: item.is_active,
     });
   };
 
@@ -91,11 +116,12 @@ export function ItemsPanel() {
       image_url: values.image_url || undefined,
       type: values.type,
       publish_date: undefined,
-      download_url: (values.type === 'digital' && values.download_url ? values.download_url : undefined),
+      download_url: values.type === 'digital' && values.download_url ? values.download_url : undefined,
       download_limit:
         values.type === 'digital' && values.download_limit.length > 0
           ? Number(values.download_limit)
           : 0,
+      is_active: values.is_active,
     };
     try {
       if (editingItem) {
@@ -104,7 +130,9 @@ export function ItemsPanel() {
         cancelEdit();
       } else {
         await itemsApi.create(payload);
-        showToast('success', '商品添加成功');
+        showToast('success', values.is_active ? '商品已添加并上架' : '商品已添加，保存在「已下架」分组');
+        // 新建后跳到对应分组，方便立刻看到结果
+        setStatusTab(values.is_active ? 'active' : 'inactive');
         reset(NEW_ITEM_FORM);
       }
       await refresh();
@@ -113,20 +141,18 @@ export function ItemsPanel() {
     }
   });
 
-  // 删除商品（两步确认；后端软删除下架）
-  const handleDelete = async (item: Item) => {
-    setDeletingId(item.id);
+  // 上架 / 下架切换
+  const toggleStatus = async (item: Item, nextActive: boolean) => {
+    setTogglingId(item.id);
     try {
-      await itemsApi.remove(item.id);
-      showToast('success', '商品已删除（下架）');
-      // 若删除的正是正在编辑的商品，退出编辑模式
-      if (editingItem?.id === item.id) cancelEdit();
+      await itemsApi.updateStatus(item.id, nextActive);
+      showToast('success', nextActive ? `「${item.name}」已上架` : `「${item.name}」已下架`);
+      // 正在编辑的商品被下架时，保持编辑态不变（商品仍然存在）
       await refresh();
     } catch (err) {
-      showToast('error', getErrorMessage(err, '删除商品失败'));
+      showToast('error', getErrorMessage(err, nextActive ? '上架失败' : '下架失败'));
     } finally {
-      setDeletingId(null);
-      setConfirmId(null);
+      setTogglingId(null);
     }
   };
 
@@ -156,20 +182,12 @@ export function ItemsPanel() {
     },
     {
       header: '库存',
-      render: (item) => <span className="text-ink-700">{formatPoints(item.stock)}</span>,
-    },
-    {
-      header: '状态',
-      render: (item) => (
-        <span
-          className={cn(
-            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
-            item.is_active ? 'bg-brand-50 text-brand-700' : 'bg-ink-100 text-ink-500',
-          )}
-        >
-          {item.is_active ? '已上架' : '已下架'}
-        </span>
-      ),
+      render: (item) =>
+        item.type === 'digital' ? (
+          <span className="text-ink-400">不限</span>
+        ) : (
+          <span className="text-ink-700">{formatPoints(item.stock)}</span>
+        ),
     },
     {
       header: '操作',
@@ -183,25 +201,25 @@ export function ItemsPanel() {
             <Pencil className="h-3.5 w-3.5" />
             {editingItem?.id === item.id ? '编辑中' : '编辑'}
           </Button>
-          {item.is_active && (
+          {item.is_active ? (
             <Button
               size="sm"
-              variant={confirmId === item.id ? 'danger' : 'outline'}
-              loading={deletingId === item.id}
-              onClick={() => {
-                if (confirmId === item.id) {
-                  void handleDelete(item);
-                  return;
-                }
-                // 三秒内再次点击才确认删除
-                setConfirmId(item.id);
-                window.setTimeout(
-                  () => setConfirmId((current) => (current === item.id ? null : current)),
-                  3000,
-                );
-              }}
+              variant="outline"
+              loading={togglingId === item.id}
+              onClick={() => void toggleStatus(item, false)}
             >
-              {confirmId === item.id ? '确认删除' : '删除'}
+              <EyeOff className="h-3.5 w-3.5" />
+              下架
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              loading={togglingId === item.id}
+              onClick={() => void toggleStatus(item, true)}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              上架
             </Button>
           )}
         </div>
@@ -213,16 +231,53 @@ export function ItemsPanel() {
     <div className="animate-fade-up grid gap-4 lg:grid-cols-5">
       {/* 商品列表 */}
       <div className="space-y-3 lg:col-span-3">
-        <h2 className="font-display text-lg font-bold text-ink-900">商品列表</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-bold text-ink-900">商品列表</h2>
+          {/* 分组切换：已上架 / 已下架 */}
+          <div className="flex items-center gap-1 rounded-lg bg-ink-100 p-1">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setStatusTab(tab.key)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  statusTab === tab.key
+                    ? 'bg-white text-ink-900 shadow-sm'
+                    : 'text-ink-500 hover:text-ink-800',
+                )}
+              >
+                {tab.label}
+                <span
+                  className={cn(
+                    'rounded-full px-1.5 text-xs',
+                    statusTab === tab.key ? 'bg-brand-50 text-brand-700' : 'bg-ink-200 text-ink-600',
+                  )}
+                >
+                  {counts[tab.key]}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {statusTab === 'inactive' && (
+          <p className="rounded-lg bg-ink-100/70 px-3 py-2 text-xs text-ink-500">
+            已下架商品在学生端不可见，历史兑换记录与积分明细不受影响，可随时重新上架。
+          </p>
+        )}
+
         {error ? (
           <ErrorNotice message={error} onRetry={() => void refresh()} />
         ) : (
           <DataTable
             columns={columns}
-            rows={items}
+            rows={visibleItems}
             rowKey={(item) => item.id}
             loading={loading}
-            emptyText="还没有商品，快去添加吧"
+            emptyText={
+              statusTab === 'active' ? '还没有已上架的商品' : '没有已下架的商品'
+            }
             emptyIcon={Package}
           />
         )}
@@ -332,6 +387,37 @@ export function ItemsPanel() {
             error={errors.image_url?.message}
             {...register('image_url')}
           />
+
+          {/* 上架状态：决定商品进入哪个分组 */}
+          <div className="rounded-lg border border-ink-100 px-3 py-3">
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-ink-900">上架状态</span>
+                <span className="mt-0.5 block text-xs text-ink-400">
+                  {formIsActive
+                    ? '已上架：学生端可见、可兑换'
+                    : '已下架：学生端不可见，保存在「已下架」分组'}
+                </span>
+              </span>
+              <span className="relative inline-flex shrink-0 items-center">
+                <input type="checkbox" {...register('is_active')} className="sr-only" />
+                <span
+                  className={cn(
+                    'inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                    formIsActive ? 'bg-brand-600' : 'bg-ink-300',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform',
+                      formIsActive ? 'translate-x-[22px]' : 'translate-x-0.5',
+                    )}
+                  />
+                </span>
+              </span>
+            </label>
+          </div>
+
           <Button type="submit" className="w-full" loading={isSubmitting}>
             {editingItem ? '保存修改' : '添加商品'}
           </Button>

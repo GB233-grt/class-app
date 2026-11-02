@@ -45,6 +45,8 @@ export const itemFormSchema = z
     download_limit: z
       .string()
       .refine((v) => v === '' || NON_NEGATIVE_INT.test(v), '下载次数限制必须是非负整数'),
+    /** 上架状态：true=已上架，false=已下架（先存草稿） */
+    is_active: z.boolean(),
   })
   .superRefine((data, ctx) => {
     if (data.type === 'digital') {
@@ -70,6 +72,7 @@ export const NEW_ITEM_FORM: ItemFormValues = {
   type: 'physical',
   download_url: '',
   download_limit: '',
+  is_active: true,
 };
 
 /** 密码强度规则（8 位以上 + 大小写 + 数字 + 特殊字符） */

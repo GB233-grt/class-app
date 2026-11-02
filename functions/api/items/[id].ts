@@ -48,6 +48,14 @@ export const onRequestPut: PagesFunction<Env, 'id'> = async ({ params, request, 
   if (downloadUrl) update.download_url = downloadUrl;
   if (downloadLimit !== undefined) update.download_limit = downloadLimit;
 
+  // 上架状态：允许在编辑表单里直接切换「已上架 / 已下架」
+  if (body.is_active !== undefined) {
+    if (typeof body.is_active !== 'boolean') {
+      throw new HttpError(400, 'is_active 必须为布尔值');
+    }
+    update.is_active = body.is_active;
+  }
+
   const { data, error } = await createAdminClient(env)
     .from('items')
     .update(update)

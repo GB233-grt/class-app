@@ -78,6 +78,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     downloadLimit = requireInt(body.download_limit, '下载次数限制', { min: 0, max: 1000000 });
   }
 
+  // 上架状态：默认直接上架；管理员也可以先建在「已下架」分组里待完善
+  let isActive = true;
+  if (body.is_active !== undefined) {
+    if (typeof body.is_active !== 'boolean') {
+      throw new HttpError(400, 'is_active 必须为布尔值');
+    }
+    isActive = body.is_active;
+  }
+
   const { data, error } = await createAdminClient(env)
     .from('items')
     .insert({
@@ -90,6 +99,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       publish_date: publishDate || (type === 'digital' ? new Date().toISOString() : null),
       download_url: downloadUrl,
       download_limit: type === 'digital' ? downloadLimit : 0,
+      is_active: isActive,
     })
     .select('*')
     .single();
