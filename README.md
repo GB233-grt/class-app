@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="./README.en.md">English</a> | <b>简体中文</b>
+</p>
+
 <div align="center">
   <img src="./public/rounded-image.png" width="260" alt="积分商城 Logo" />
 </div>
