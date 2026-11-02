@@ -29,12 +29,12 @@ import type { Item } from '../../../types';
 /** 商品类型徽标 */
 function ItemTag({ item }: { item: Item }) {
   return item.type === 'digital' ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
       <Shield className="h-2.5 w-2.5" />
       网络商品
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
+    <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
       <Package className="h-2.5 w-2.5" />
       实物商品
     </span>
@@ -217,7 +217,7 @@ export function ItemsPanel() {
     {
       header: '操作',
       render: (item) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 whitespace-nowrap">
           <Button
             size="sm"
             variant={editingItem?.id === item.id ? 'dark' : 'outline'}

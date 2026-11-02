@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 先看文档
+    url: https://github.com/GB233-grt/class-app#快速开始
+    about: 部署、环境变量、数据库初始化等问题，README 里基本都有答案
+  - name: 💬 讨论区
+    url: https://github.com/GB233-grt/class-app/discussions
+    about: 不确定是不是 bug、想聊聊用法，可以在这里发

@@ -1,0 +1,70 @@
+name: 🐞 Bug 报告
+description: 报告一个可以复现的问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！请尽量提供可复现的信息，能大幅缩短修复时间。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 现象 + 期望行为
+      placeholder: |
+        实际：点「立即兑换」后积分没有变化，但兑换记录多了一条
+        期望：积分应该扣掉 8 分
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 用学生账号登录
+        2. 进入「兑换商品」
+        3. 兑换一个网络商品
+        4. 观察积分卡片
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响范围
+      multiple: true
+      options:
+        - 学生端（兑换 / 记录 / 积分明细）
+        - 教师端（发放 / 加分 / 批量加分）
+        - 管理端（商品 / 学生 / 设置）
+        - 登录与账户
+        - 数据库函数 / 迁移脚本
+        - 部署与构建
+
+  - type: input
+    id: env
+    attributes:
+      label: 运行环境
+      placeholder: 例如 Chrome 130 / Windows 11，或 本地 npm run pages:dev
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 报错信息 / 截图
+      description: 浏览器控制台、Network 面板的响应体，或页面截图
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经搜索过现有 Issue，确认没有重复
+          required: true
+        - label: 如果涉及数据库，我已执行 `database/migrations/` 中的最新脚本
+          required: false

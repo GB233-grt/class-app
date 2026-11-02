@@ -3,102 +3,66 @@
 </p>
 
 <div align="center">
-  <img src="./public/rounded-image.png" width="260" alt="Points Store Logo" />
+  <img src="./public/rounded-image.png" width="110" alt="Points Store Logo" />
+
+  <h1>Points Store · Student Reward Platform</h1>
+
+  <p>
+    <b>Teachers award, students redeem, admins manage stock</b> — a campus points system you can actually run in class.<br/>
+    Self-hosted, 5-minute deploy, no server to maintain.
+  </p>
+
+  <p>
+    <a href="https://github.com/GB233-grt/class-app/actions/workflows/ci.yml"><img src="https://github.com/GB233-grt/class-app/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
+    <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React" />
+    <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Cloudflare-Pages-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Pages" />
+    <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
+  </p>
 </div>
 
-<h1 align="center">Points Store · Student Reward Platform</h1>
+<div align="center">
+  <img src="./docs/screenshots/student.png" width="880" alt="Student dashboard: points wallet and store" />
+  <sub>Student dashboard · points wallet / store / stock and free items</sub>
+</div>
 
-<p align="center">
-  Teachers award points for good performance; students redeem them for prizes and study materials.<br/>
-  A self-hosted campus points store — deploy in 5 minutes, no server to maintain.
-</p>
+<br/>
 
-<p align="center">
-  <a href="#quick-start"><img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" /></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Cloudflare-Pages-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Pages" />
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
-  <img src="https://img.shields.io/badge/PRs-welcome-pink" alt="PRs welcome" />
-</p>
+## ⚡ Run it in 30 seconds
 
-<p align="center">
-  <sub>Student / Teacher / Admin consoles · Atomic points &amp; stock · Row Level Security · Chinese-only UI</sub>
-</p>
+```bash
+git clone https://github.com/GB233-grt/class-app.git && cd class-app
+npm install
+cp .env.example .env && cp .dev.vars.example .dev.vars   # fill in Supabase URL and anon key
+npm run pages:dev                                        # → http://localhost:8788
+```
 
----
+For the database, run two files in the Supabase **SQL Editor**: `database/all-in-one/step1-schema.sql`, then `step2-seed.sql`.
+Full setup (schema, accounts, migrations) is in [Quick Start](#quick-start).
 
-## Table of Contents
+| Role | What they can do |
+| --- | --- |
+| 🎒 Student | See points balance and ledger, redeem prizes and study materials, view the leaderboard |
+| 👩‍🏫 Teacher | Award points individually or via Excel, fulfil physical redemptions |
+| 🛠️ Admin | Manage items and publish groups, schedule auto-expiry, free items, accounts and settings |
 
-- [Introduction](#introduction)
-- [Features](#features)
+<details>
+<summary><b>Table of Contents</b> (click to expand)</summary>
+
 - [Quick Start](#quick-start)
+- [Screenshots](#screenshots)
+- [Features](#features)
 - [Usage Examples](#usage-examples)
 - [Configuration](#configuration)
 - [Architecture](#architecture)
-  - [Directory Structure](#directory-structure)
-  - [Data Flow](#data-flow)
-  - [Data Consistency](#data-consistency)
-  - [Security Model](#security-model)
 - [API Reference](#api-reference)
 - [Deploy to Cloudflare Pages](#deploy-to-cloudflare-pages)
 - [FAQ](#faq)
-- [Roadmap](#roadmap)
-- [Changelog](#changelog)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contributors](#contributors)
-- [Acknowledgements](#acknowledgements)
+- [Roadmap](#roadmap) · [Changelog](#changelog)
+- [Contributing](#contributing) · [License](#license) · [Tools and Credits](#tools-and-credits)
 
----
-
-## Introduction
-
-Points-based rewards in schools usually live on paper: points in a notebook, redemptions confirmed verbally, statistics tallied by hand.
-This project turns that into a deployable web app — **teachers award, students redeem, admins manage stock** — with every step recorded and every number traceable.
-
-- **Problem it solves**: moves the "classroom performance → points → prize redemption" loop online, eliminating lost records, wrong entries and disputes at the redemption desk.
-- **Who uses it**: one system, three roles — students (redeem), teachers (award / hand out), admins (items and accounts).
-- **How it is deployed**: frontend and API on Cloudflare Pages, data and auth on Supabase — **no server to maintain**.
-
-> All UI copy is in Chinese; the database is PostgreSQL; the deployment target is Cloudflare (Pages + Pages Functions).
-
----
-
-## Features
-
-### 🎒 Students
-
-- **Points wallet**: large points card with a greeting — balance at a glance
-- **Store**: card grid of published items; shows "Sold out" when stock is 0 and "Not enough points" otherwise
-- **Redemption history**: table with item name, points spent, time, download link and fulfilment status
-- **Points ledger**: reason, delta and balance after every award or deduction
-- **Leaderboard**: campus-wide ranking by points
-- **Account settings**: change password (old password required), edit nickname/student ID (can be disabled by admin), delete account
-
-### 👩‍🏫 Teachers
-
-- **Fulfilment queue**: review student and item, then mark as delivered
-- **Award points**: add or deduct points for one student, with a required reason (common reasons suggested)
-- **Bulk award**: upload an Excel sheet, score an entire class by formula in one go
-
-### 🛠️ Admins
-
-- **Overview**: item count, total stock, total points awarded
-- **Item management**: two groups (Published / Unpublished), toggle visibility at any time; physical and digital items
-- **System settings**: toggle whether students may edit their own nickname / student ID
-- **Accounts**: create student/teacher accounts, provisioning the login account at the same time
-
-### 🎁 Item capabilities
-
-| Capability | Description |
-| --- | --- |
-| Physical item | Has stock; redemption creates a "pending" record for a teacher to hand out |
-| Digital item | Has stock; redemption **auto-fulfils** and delivers a download link immediately |
-| Free item | Set price to **0**; costs no points but is still stock-limited |
-| Auto-expiry | Set an expiry time; the item is unpublished automatically when it passes, history is kept |
-| Stock control | Both item types are stock-limited; sold out once stock reaches 0 |
+</details>
 
 ---
 
@@ -112,7 +76,7 @@ This project turns that into a deployable web app — **teachers award, students
 | Supabase | Free tier is enough | Database + authentication |
 | Cloudflare | Free account | Only needed for deployment |
 
-### 1. Clone and install
+### 1. Install
 
 ```bash
 git clone https://github.com/GB233-grt/class-app.git
@@ -130,16 +94,16 @@ cp .env.example .env            # Windows PowerShell: Copy-Item .env.example .en
 cp .dev.vars.example .dev.vars
 ```
 
-See [Configuration](#configuration) for every field. Both files are listed in `.gitignore` and never enter the repository.
+See [Configuration](#configuration) for every field. Both files are listed in `.gitignore`.
 
 ### 3. Initialise the database
 
-**Brand-new database**: open the Supabase console → **SQL Editor** and run, in order:
+**Brand-new database**: Supabase console → **SQL Editor**, run in order:
 
 1. `database/all-in-one/step1-schema.sql` — tables + atomic functions + RLS
 2. `database/all-in-one/step2-seed.sql` — sample seed data
 
-**Upgrading an existing database**: run the scripts in `database/migrations/` that you have not applied yet, in numeric order:
+**Upgrading an existing database**: run the scripts in `database/migrations/` you have not applied yet, in numeric order:
 
 | Script | Content |
 | --- | --- |
@@ -156,12 +120,12 @@ See [Configuration](#configuration) for every field. Both files are listed in `.
 
 ### 4. Create login accounts
 
-Go to **Authentication → Users → Add user** and create each account with a password (tick **Auto Confirm User**, otherwise login fails with an unverified email error):
+**Authentication → Users → Add user**, create each account with a password (tick **Auto Confirm User**, otherwise login fails with an unverified email error):
 
 - Admin: `admin@school.edu`
 - Students: `student@school.edu`, `student2@school.edu`
 
-The emails must match those in the `database/seed/` templates; the templates map `students.id` to `auth.users.id` via an email subquery.
+The emails must match the `database/seed/` templates; the templates map `students.id` to `auth.users.id` via an email subquery.
 
 ### 5. Run it
 
@@ -184,8 +148,63 @@ Open <http://localhost:5173> and sign in with an account from step 4.
 npm run dev         # frontend hot reload only (API requires pages:dev)
 npm run build       # build into dist/
 npm run typecheck   # TypeScript check (frontend + Functions)
+npm test            # unit tests (Vitest)
 npm run deploy      # build and deploy to Cloudflare Pages
 ```
+
+---
+
+## Screenshots
+
+| Teacher · fulfilment queue | Admin · item management |
+| --- | --- |
+| <img src="./docs/screenshots/teacher.png" alt="Teacher fulfilment queue" /> | <img src="./docs/screenshots/admin.png" alt="Admin item management" /> |
+
+<details>
+<summary>Login page</summary>
+
+<img src="./docs/screenshots/login.png" alt="Login page" />
+
+</details>
+
+> Screenshots come from the real build output; the data is demo data injected by `tools/preview-server.mjs`, so no real database is needed.
+> Regenerate with `npm run build && npm run preview:ui student 8801`, then capture `http://localhost:8801`.
+
+---
+
+## Features
+
+### 🎒 Students
+
+- **Points wallet**: large points card with a greeting
+- **Store**: card grid; shows "Sold out" at zero stock and "Not enough points" otherwise
+- **Redemption history**: item name, points spent, time, download link and fulfilment status
+- **Points ledger**: reason, delta and balance after every award or deduction
+- **Leaderboard**: campus-wide ranking by points
+- **Account settings**: change password (old password required), edit nickname/student ID (can be disabled by admin), delete account
+
+### 👩‍🏫 Teachers
+
+- **Fulfilment queue**: review student and item, then mark as delivered
+- **Award points**: add or deduct points for one student with a required reason
+- **Bulk award**: upload an Excel sheet, score an entire class by formula in one go
+
+### 🛠️ Admins
+
+- **Overview**: item count, total stock, total points awarded
+- **Item management**: two groups (Published / Unpublished), toggle visibility at any time
+- **System settings**: toggle whether students may edit their own nickname / student ID
+- **Accounts**: create student/teacher accounts, provisioning the login account too
+
+### 🎁 Item capabilities
+
+| Capability | Description |
+| --- | --- |
+| Physical item | Has stock; redemption creates a "pending" record for a teacher to hand out |
+| Digital item | Has stock; redemption **auto-fulfils** and delivers a download link immediately |
+| Free item | Set price to **0**; costs no points but is still stock-limited |
+| Auto-expiry | Set an expiry time; the item is unpublished automatically when it passes, history is kept |
+| Stock control | Both item types are stock-limited; sold out once stock reaches 0 |
 
 ---
 
@@ -195,7 +214,7 @@ npm run deploy      # build and deploy to Cloudflare Pages
 
 1. Sign in → open **Store**
 2. Pick an item and click **Redeem now** (free items show **Redeem for free**)
-3. A digital item appears in **Redemption history** immediately with a download link; a physical item becomes "Pending" and waits for a teacher
+3. A digital item appears in **Redemption history** immediately with a download link; a physical item becomes "Pending"
 
 ### Teacher: award points to a whole class
 
@@ -219,8 +238,7 @@ curl -X POST "https://<your-domain>/api/auth/login" \
   -d '{"email":"student@school.edu","password":"your-password"}'
 
 # 2) List items
-curl "https://<your-domain>/api/items" \
-  -H "Authorization: Bearer <access_token>"
+curl "https://<your-domain>/api/items" -H "Authorization: Bearer <access_token>"
 
 # 3) Redeem an item
 curl -X POST "https://<your-domain>/api/redemptions" \
@@ -272,6 +290,7 @@ class-app/
 ├── database/                      # SQL scripts (run manually in Supabase SQL Editor)
 │   ├── migrations/                # Incremental migrations 01 → 14
 │   ├── all-in-one/                # One-shot schema + seed for a fresh database
+│   ├── tests/                     # DB function tests (transaction + rollback)
 │   └── seed/                      # Seed templates (never run automatically)
 ├── functions/                     # Cloudflare Pages Functions (backend)
 │   ├── api/
@@ -286,14 +305,17 @@ class-app/
 │   │   ├── leaderboard.ts         # Leaderboard
 │   │   └── stats.ts               # Overview statistics
 │   └── lib/                       # Auth guards, HTTP helpers, Supabase client factories
+├── docs/screenshots/              # README screenshots
 ├── public/                        # Static assets (logo, import template)
 ├── src/                           # Frontend (React + Vite)
 │   ├── api/                       # Fetch client and endpoint definitions
 │   ├── components/                # common / layout / feature layers
 │   ├── hooks/                     # useAuth / useItems / useStudents / useToast …
-│   ├── lib/                       # Validation rules, constants, utilities
+│   ├── lib/                       # Validation, constants, utilities (+ unit tests)
 │   ├── pages/                     # Three dashboards + login page
 │   └── types/                     # TypeScript types
+├── tools/preview-server.mjs       # Local preview server (for README screenshots)
+├── .github/workflows/ci.yml       # CI: typecheck + test + build
 ├── index.html
 ├── wrangler.toml                  # Cloudflare Pages configuration
 ├── .env.example                   # Frontend variable template
@@ -311,31 +333,37 @@ flowchart LR
   E -->|"SECURITY DEFINER"| F["Atomic functions<br/>adjust_student_points<br/>redeem_item<br/>expire_items"]
 ```
 
-**Layering rule**: frontend goes `api client → hooks → components`, backend goes `route → middleware (auth) → Supabase client factory`. Each side depends only on the layer below, which keeps things replaceable and testable.
+**Layering rule**: frontend goes `api client → hooks → components`, backend goes `route → middleware (auth) → Supabase client factory`. Each side depends only on the layer below.
 
 ### Data Consistency
 
-All points and stock writes are wrapped in database functions and commit **atomically in a single transaction**, so concurrent requests never oversell or corrupt balances:
+All points and stock writes are wrapped in database functions and commit **atomically in a single transaction**:
 
 - `adjust_student_points`: lock the student row → validate balance → update → append a ledger entry
 - `redeem_item`: lock the item row → validate published / stock / balance → deduct points and stock → write the redemption (with an **item name and price snapshot**) → append a ledger entry
 - `expire_items`: unpublish every published item whose `expires_at` has passed (lazy cleanup, invoked by both the item list and the redemption endpoint)
 
-Redemptions keep a snapshot of the item name and price, so later price changes or unpublishing never distort history.
+### Testing
+
+| Layer | Location | How to run |
+| --- | --- | --- |
+| Frontend unit tests | `src/lib/*.test.ts` (40 cases: form validation, password strength, datetime round-trip) | `npm test` |
+| Database functions | `database/tests/redeem_item.test.sql` (5 scenarios: deduct points/stock, out of stock, insufficient points, free item) | Paste into the Supabase SQL Editor; runs in a transaction and rolls back |
+| Continuous integration | `.github/workflows/ci.yml` | typecheck + test + build on every push / PR |
 
 ### Security Model
 
 - All writes go through the backend; the browser never receives the `service_role` key
-- RLS is enabled: ordinary user credentials get SELECT-only access to business tables, and only to their own rows
-- Student-side mutations (redeeming, being awarded) run through `SECURITY DEFINER` functions that re-check `auth.uid()`
-- Changing a password or deleting an account both **require the current password**; no email code is involved
-- Passwords are salted and hashed by Supabase Auth — even the server cannot read them
+- RLS is enabled: ordinary user credentials get SELECT-only access, and only to their own rows
+- Student-side mutations run through `SECURITY DEFINER` functions that re-check `auth.uid()`
+- Changing a password or deleting an account both **require the current password**
+- Passwords are salted and hashed by Supabase Auth
 
 ---
 
 ## API Reference
 
-Except for the login endpoints, every request must carry `Authorization: Bearer <Access Token>` (the frontend fetch client attaches it automatically).
+Except for the login endpoints, every request must carry `Authorization: Bearer <Access Token>`.
 
 <details>
 <summary><b>Expand the full endpoint list</b></summary>
@@ -431,28 +459,28 @@ npm run deploy      # run `npx wrangler login` first
 ## FAQ
 
 **Login says "wrong email or password"?**
-Make sure the user exists under Authentication → Users and the email is confirmed (tick Auto Confirm when creating it).
+Make sure the user exists under Authentication → Users and the email is confirmed.
 
 **Login says "user profile does not exist"?**
-There is no matching row in `students` for that auth user. Run `database/seed/01_create_admin.sql` and `02_create_students.sql`, or insert the row manually (`id` must equal the auth user ID).
+There is no matching row in `students` for that auth user. Run `database/seed/01_create_admin.sql` and `02_create_students.sql`, or insert the row manually.
 
 **"Server is missing SUPABASE_SERVICE_ROLE_KEY"?**
-The service role key is not configured in `.dev.vars` or in the Cloudflare environment variables. Add it and restart / redeploy.
+Add the service role key to `.dev.vars` or the Cloudflare environment variables, then restart / redeploy.
 
 **`npm run dev` returns 404 for API calls?**
-`vite dev` only serves the frontend. Run `npm run pages:dev` alongside it, or open port 8788 directly.
+`vite dev` only serves the frontend. Run `npm run pages:dev` alongside it.
 
 **Redemption says "not enough points / not enough stock"?**
 Ask an admin to award points or restock. Database functions guarantee no overselling under concurrency.
 
 **What is the difference between an item's "stock" and "download limit"?**
-`stock` decides how many times the item can be redeemed (sold out at 0). `download_limit` is currently **stored but not enforced** — there is no counting download proxy, so students receive the original link. Enforcing it would require a `/api/downloads/:redemptionId` proxy.
+`stock` decides how many times the item can be redeemed. `download_limit` is currently **stored but not enforced** — there is no counting download proxy, so students receive the original link.
 
 **Why is an expired item still listed as Published?**
-Expiry cleanup is lazy: it runs when someone loads the item list or starts a redemption. Refresh the item management page and it will move to Unpublished.
+Expiry cleanup is lazy: it runs when someone loads the item list or starts a redemption. Refresh the item management page.
 
 **Can a student bypass the UI and change points directly?**
-No. RLS denies writes with ordinary credentials; every write must go through the backend API and database functions.
+No. RLS denies writes with ordinary credentials.
 
 ---
 
@@ -464,9 +492,10 @@ No. RLS denies writes with ordinary credentials; every write must go through the
 - [x] Bulk Excel awarding
 - [x] Item grouping, publishing toggle, free items, auto-expiry
 - [x] Account settings (password / profile / deletion)
+- [x] Unit tests and CI
 - [ ] Enforced download limit (counting download proxy)
 - [ ] Export redemption history to Excel
-- [ ] In-app notifications (redemption / fulfilment)
+- [ ] In-app notifications
 - [ ] Mobile PWA
 
 Feature requests are welcome in Issues.
@@ -475,27 +504,22 @@ Feature requests are welcome in Issues.
 
 ## Changelog
 
-See the [commit history](https://github.com/GB233-grt/class-app/commits/main) in reverse chronological order.
+See the [commit history](https://github.com/GB233-grt/class-app/commits/main).
 After every database upgrade, redeploy (`npm run deploy`) so the backend matches the schema.
 
 ---
 
 ## Contributing
 
-1. Fork the repository and branch off `main`: `git checkout -b feat/your-feature`
-2. Install dependencies and start the local environment (see [Quick Start](#quick-start))
-3. Make sure the checks pass before committing:
+Full rules live in **[CONTRIBUTING.en.md](./CONTRIBUTING.en.md)**; the short version:
 
-   ```bash
-   npm run typecheck
-   npm run build
-   ```
+1. Fork and branch off `main`: `git checkout -b feat/your-feature`
+2. Make sure `npm run typecheck`, `npm test` and `npm run build` pass
+3. For schema changes **add** a migration script; never edit a released one
+4. Prefix commits with `feat:` / `fix:` / `docs:` / `refactor:`
+5. Open a PR describing motivation, blast radius and how you verified it
 
-4. For schema changes, **add** a new incremental script `database/migrations/NN_xxx.sql` — never edit scripts that have already been released
-5. Prefix commit messages with `feat:` / `fix:` / `docs:` / `refactor:`
-6. Open a Pull Request describing the motivation, the blast radius and how you verified it
-
-Code style: TypeScript strict mode, function components with hooks, Chinese comments, Tailwind utility classes.
+**First time?** Issues labelled [`good first issue`](https://github.com/GB233-grt/class-app/labels/good%20first%20issue) are reserved for newcomers — just reply "I'll take this".
 
 ---
 
@@ -505,23 +529,21 @@ Released under the [MIT License](./LICENSE).
 
 ---
 
-## Contributors
+## Tools and Credits
 
-Designed, implemented and documented by the author together with the following AI assistants:
+This project was designed and implemented by the author, who owns the decisions and the final code. The following AI coding assistants were used as **tools** during development, for assisted coding, design discussion and documentation drafting.
 
-| Contributor | Role |
+| Tool | Involvement |
 | --- | --- |
-| 🧠 [Zhipu GLM](https://www.zhipuai.cn/) | Design, implementation, documentation and coding |
-| 🐋 [DeepSeek](https://www.deepseek.com/) | Design, implementation, documentation and coding |
+| 🧠 [Zhipu GLM](https://www.zhipuai.cn/) | Assisted design, implementation, documentation and coding |
+| 🐋 [DeepSeek](https://www.deepseek.com/) | Assisted design, implementation, documentation and coding |
 | ☁️ [Alibaba Qwen](https://tongyi.aliyun.com/qianwen/) | Project structure and foundational guidance |
-| 🔬 [Shanghai AI Laboratory](https://www.shlab.org.cn/) | Design, implementation, documentation and coding |
+| 🔬 [Shanghai AI Laboratory](https://www.shlab.org.cn/) | Assisted design, implementation, documentation and coding |
 
----
-
-## Acknowledgements
+### Technologies and services
 
 - [React](https://react.dev) · [Vite](https://vitejs.dev) · [Tailwind CSS](https://tailwindcss.com)
-- [Lucide](https://lucide.dev) icons
+- [Lucide](https://lucide.dev) icons · [Vitest](https://vitest.dev) test runner
 - [Supabase](https://supabase.com) for managed PostgreSQL and authentication
 - [Cloudflare Pages](https://pages.cloudflare.com) for static hosting and edge functions
 - Every teacher and student who actually uses it in class

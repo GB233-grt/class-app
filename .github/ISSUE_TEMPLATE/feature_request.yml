@@ -1,0 +1,54 @@
+name: ✨ 功能建议
+description: 提出一个希望增加或改进的功能
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        欢迎提需求。请优先描述**场景**而不是**实现方式**，这样更容易判断该不该做。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到什么场景
+      description: 谁在什么情况下需要它？
+      placeholder: |
+        每次期中考试后，老师要逐个给 40 个学生加分，
+        虽然已经有批量 Excel，但表格格式一旦不对就整批失败，
+        希望能先预览再提交。
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 你期望的效果
+      placeholder: 上传后先显示「将给 38 人加分，2 人未匹配」，确认后再入账。
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及模块
+      multiple: true
+      options:
+        - 学生端
+        - 教师端
+        - 管理端
+        - 数据库 / 后端接口
+        - 文档
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 你考虑过的替代方案
+      validation:
+        required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经看过 README 的「路线图」，确认这不是已规划项
+          required: true

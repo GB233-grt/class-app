@@ -3,102 +3,66 @@
 </p>
 
 <div align="center">
-  <img src="./public/rounded-image.png" width="260" alt="积分商城 Logo" />
+  <img src="./public/rounded-image.png" width="110" alt="积分商城 Logo" />
+
+  <h1>积分商城 · 学生积分奖励平台</h1>
+
+  <p>
+    <b>老师加分，学生兑换，管理员管货</b> —— 一套可以真正跑在课堂里的校园积分系统。<br/>
+    自托管，5 分钟部署，不需要自己的服务器。
+  </p>
+
+  <p>
+    <a href="https://github.com/GB233-grt/class-app/actions/workflows/ci.yml"><img src="https://github.com/GB233-grt/class-app/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
+    <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React" />
+    <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Cloudflare-Pages-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Pages" />
+    <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
+  </p>
 </div>
 
-<h1 align="center">积分商城 · 学生积分奖励平台</h1>
+<div align="center">
+  <img src="./docs/screenshots/student.png" width="880" alt="学生端：积分钱包与兑换商城" />
+  <sub>学生端 · 积分钱包 / 兑换商城 / 库存与免费商品</sub>
+</div>
 
-<p align="center">
-  老师给学生的良好表现加积分，学生用积分兑换奖品与学习资料。<br/>
-  一个自托管的校园积分商城，5 分钟部署，无需自建服务器。
-</p>
+<br/>
 
-<p align="center">
-  <a href="#快速开始"><img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build" /></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
-  <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white" alt="React" />
-  <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Cloudflare-Pages-F38020?logo=cloudflare&logoColor=white" alt="Cloudflare Pages" />
-  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
-  <img src="https://img.shields.io/badge/PRs-welcome-pink" alt="PRs welcome" />
-</p>
+## ⚡ 30 秒跑起来
 
-<p align="center">
-  <sub>学生端 / 教师端 / 管理端三套工作台 · 原子化积分与库存 · 行级安全（RLS） · 全中文界面</sub>
-</p>
+```bash
+git clone https://github.com/GB233-grt/class-app.git && cd class-app
+npm install
+cp .env.example .env && cp .dev.vars.example .dev.vars   # 填入 Supabase URL 与 anon key
+npm run pages:dev                                        # → http://localhost:8788
+```
 
----
+数据库只需在 Supabase **SQL Editor** 里跑两个文件：`database/all-in-one/step1-schema.sql` → `step2-seed.sql`。
+完整的建库、建账号步骤见 [快速开始](#快速开始)。
 
-## 目录
+| 角色 | 能做什么 |
+| --- | --- |
+| 🎒 学生 | 查看积分余额与明细、用积分兑换奖品与学习资料、看排行榜 |
+| 👩‍🏫 教师 | 单人加分 / Excel 批量加分、核销线下兑换发放 |
+| 🛠️ 管理员 | 商品上下架与分组、到期自动下架、免费商品、账号与系统设置 |
 
-- [项目简介](#项目简介)
-- [功能特性](#功能特性)
+<details>
+<summary><b>目录</b>（点击展开）</summary>
+
 - [快速开始](#快速开始)
+- [界面预览](#界面预览)
+- [功能特性](#功能特性)
 - [使用示例](#使用示例)
 - [配置说明](#配置说明)
 - [架构说明](#架构说明)
-  - [目录结构](#目录结构)
-  - [数据流](#数据流)
-  - [数据一致性](#数据一致性)
-  - [安全模型](#安全模型)
 - [API 接口](#api-接口)
 - [部署到 Cloudflare Pages](#部署到-cloudflare-pages)
 - [常见问题](#常见问题)
-- [路线图](#路线图)
-- [更新日志](#更新日志)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
-- [贡献者](#贡献者)
-- [致谢](#致谢)
+- [路线图](#路线图) · [更新日志](#更新日志)
+- [贡献指南](#贡献指南) · [许可证](#许可证) · [开发工具与致谢](#开发工具与致谢)
 
----
-
-## 项目简介
-
-学校里的积分奖励往往停留在纸面：加分记在本子上、兑奖靠老师口头确认、统计要手工汇总。
-本项目把它做成一套可以直接部署上线的 Web 应用——**老师加分、学生兑换、管理员管货**，全流程留痕、数据可查。
-
-- **解决什么问题**：把「课堂表现 → 积分 → 兑换奖品」这条链路搬到线上，避免漏记、错记与兑奖扯皮。
-- **谁在用**：三类角色共用一套系统 —— 学生（兑换）、教师（加分 / 发放）、管理员（商品与账号管理）。
-- **怎么部署**：前端与接口部署在 Cloudflare Pages，数据与登录托管在 Supabase，**无需自建服务器**。
-
-> 全部界面文案为中文；数据库为 PostgreSQL；部署目标为 Cloudflare（Pages + Pages Functions）。
-
----
-
-## 功能特性
-
-### 🎒 学生端
-
-- **积分钱包**：大字号积分卡片 + 姓名问候，一眼看余额
-- **兑换商城**：卡片网格展示上架商品；售罄显示「已售罄」，积分不够显示「积分不足」
-- **兑换记录**：历史表格，含商品名、消耗积分、时间、下载链接、发放状态
-- **积分明细**：每一笔加/扣分的原因、变动值、变动后余额
-- **排行榜**：按积分倒序看全校排名
-- **账户设置**：改密码（旧密码校验）、改昵称/学号（管理员可关闭）、注销账号
-
-### 👩‍🏫 教师端
-
-- **兑换发放**：待发放队列，核对学生与商品后标记「已发放」
-- **学生加分**：单人加减分，需填写原因（带常见原因联想）
-- **批量加分**：上传 Excel，按公式批量判分入账，一次处理一个班
-
-### 🛠️ 管理端
-
-- **统计概览**：商品数量、总库存、发放总积分
-- **商品管理**：已上架 / 已下架两个分组，随时上下架；支持实物商品与网络商品
-- **系统设置**：开关「是否允许学生自助修改昵称 / 学号」
-- **账号体系**：新建学生/教师账号，同步创建登录账号
-
-### 🎁 商品能力
-
-| 能力 | 说明 |
-| --- | --- |
-| 实物商品 | 有库存，兑换后进入「待发放」，由教师线下发出 |
-| 网络商品 | 有库存，兑换后**自动发放**下载链接，学生直接下载 |
-| 免费商品 | 价格填 **0** 即可，不消耗学生积分，仍按库存限量 |
-| 到期自动下架 | 可设置到期时间，到点后自动变为「已下架」，历史记录保留 |
-| 库存控制 | 实物与网络商品统一按库存限量，兑完即售罄 |
+</details>
 
 ---
 
@@ -112,7 +76,7 @@
 | Supabase | 免费版即可 | 数据库 + 登录认证 |
 | Cloudflare | 免费账号 | 仅部署时需要 |
 
-### 1. 克隆并安装
+### 1. 安装
 
 ```bash
 git clone https://github.com/GB233-grt/class-app.git
@@ -130,11 +94,11 @@ cp .env.example .env            # Windows PowerShell: Copy-Item .env.example .en
 cp .dev.vars.example .dev.vars
 ```
 
-两份文件的字段说明见 [配置说明](#配置说明)。两个文件都已在 `.gitignore` 中，不会进入版本库。
+字段说明见 [配置说明](#配置说明)。两个文件都已在 `.gitignore` 中。
 
 ### 3. 初始化数据库
 
-**全新数据库**：进入 Supabase 控制台 → **SQL Editor**，依次执行：
+**全新数据库**：Supabase 控制台 → **SQL Editor**，依次执行：
 
 1. `database/all-in-one/step1-schema.sql` —— 建表 + 原子函数 + RLS
 2. `database/all-in-one/step2-seed.sql` —— 示例种子数据
@@ -156,12 +120,12 @@ cp .dev.vars.example .dev.vars
 
 ### 4. 创建登录账号
 
-进入 **Authentication → Users → Add user**，逐个创建并设置密码（勾选 **Auto Confirm User**，否则登录会提示邮箱未验证）：
+**Authentication → Users → Add user**，逐个创建并设置密码（勾选 **Auto Confirm User**，否则登录会提示邮箱未验证）：
 
 - 管理员：`admin@school.edu`
 - 学生：`student@school.edu`、`student2@school.edu`
 
-邮箱必须与 `database/seed/` 模板中的一致；模板通过邮箱子查询把 `students.id` 对齐到 `auth.users.id`。
+邮箱需与 `database/seed/` 模板一致；模板通过邮箱子查询把 `students.id` 对齐到 `auth.users.id`。
 
 ### 5. 启动
 
@@ -184,8 +148,63 @@ npm run dev           # 终端 2：Vite（:5173，/api 自动代理到 8788）
 npm run dev         # 仅前端热更新（API 需另开 pages:dev）
 npm run build       # 构建到 dist/
 npm run typecheck   # TypeScript 类型检查（前端 + Functions）
+npm test            # 单元测试（Vitest）
 npm run deploy      # 构建并部署到 Cloudflare Pages
 ```
+
+---
+
+## 界面预览
+
+| 教师端 · 兑换发放 | 管理端 · 商品管理 |
+| --- | --- |
+| <img src="./docs/screenshots/teacher.png" alt="教师端兑换发放队列" /> | <img src="./docs/screenshots/admin.png" alt="管理端商品管理" /> |
+
+<details>
+<summary>登录页</summary>
+
+<img src="./docs/screenshots/login.png" alt="登录页" />
+
+</details>
+
+> 截图取自真实构建产物，数据为演示用的示例数据（由 `tools/preview-server.mjs` 注入，不需要真实数据库）。
+> 重新生成：`npm run build && npm run preview:ui student 8801`，然后截图 `http://localhost:8801`。
+
+---
+
+## 功能特性
+
+### 🎒 学生端
+
+- **积分钱包**：大字号积分卡片 + 姓名问候
+- **兑换商城**：卡片网格；售罄显示「已售罄」，积分不够显示「积分不足」
+- **兑换记录**：商品名、消耗积分、时间、下载链接、发放状态
+- **积分明细**：每笔加/扣分的原因、变动值与变动后余额
+- **排行榜**：按积分倒序查看全校排名
+- **账户设置**：改密码（旧密码校验）、改昵称/学号（管理员可关闭）、注销账号
+
+### 👩‍🏫 教师端
+
+- **兑换发放**：待发放队列，核对学生与商品后标记「已发放」
+- **学生加分**：单人加减分，需填写原因（带常见原因联想）
+- **批量加分**：上传 Excel，按公式批量判分入账，一次处理一个班
+
+### 🛠️ 管理端
+
+- **统计概览**：商品数量、总库存、发放总积分
+- **商品管理**：已上架 / 已下架两个分组，随时上下架
+- **系统设置**：开关「是否允许学生自助修改昵称 / 学号」
+- **账号体系**：新建学生/教师账号，同步创建登录账号
+
+### 🎁 商品能力
+
+| 能力 | 说明 |
+| --- | --- |
+| 实物商品 | 有库存，兑换后进入「待发放」，由教师线下发出 |
+| 网络商品 | 有库存，兑换后**自动发放**下载链接，学生直接下载 |
+| 免费商品 | 价格填 **0** 即可，不消耗学生积分，仍按库存限量 |
+| 到期自动下架 | 可设置到期时间，到点后自动变为「已下架」，历史记录保留 |
+| 库存控制 | 实物与网络商品统一按库存限量，兑完即售罄 |
 
 ---
 
@@ -193,9 +212,9 @@ npm run deploy      # 构建并部署到 Cloudflare Pages
 
 ### 学生：兑换一件网络商品
 
-1. 登录 → 进入「积分商店」
+1. 登录 → 进入「兑换商品」
 2. 选择商品，点 **立即兑换**（免费商品显示「免费兑换」）
-3. 网络商品立即出现在「兑换记录」中，点链接即可下载；实物商品进入「待发放」，等待老师发放
+3. 网络商品立即出现在「兑换记录」中，点链接即可下载；实物商品进入「待发放」
 
 ### 教师：给一个班批量加分
 
@@ -219,8 +238,7 @@ curl -X POST "https://<你的域名>/api/auth/login" \
   -d '{"email":"student@school.edu","password":"你的密码"}'
 
 # 2) 拉取商品列表
-curl "https://<你的域名>/api/items" \
-  -H "Authorization: Bearer <access_token>"
+curl "https://<你的域名>/api/items" -H "Authorization: Bearer <access_token>"
 
 # 3) 兑换一个商品
 curl -X POST "https://<你的域名>/api/redemptions" \
@@ -272,6 +290,7 @@ class-app/
 ├── database/                      # 数据库脚本（Supabase SQL Editor 手动执行）
 │   ├── migrations/                # 增量迁移 01 → 14
 │   ├── all-in-one/                # 全新库一键建表 + 种子
+│   ├── tests/                     # 数据库函数测试（事务内运行，自动回滚）
 │   └── seed/                      # 种子数据模板（不自动执行）
 ├── functions/                     # Cloudflare Pages Functions（后端）
 │   ├── api/
@@ -286,14 +305,17 @@ class-app/
 │   │   ├── leaderboard.ts         # 排行榜
 │   │   └── stats.ts               # 统计概览
 │   └── lib/                       # 认证鉴权、HTTP 工具、Supabase 客户端工厂
+├── docs/screenshots/              # README 截图
 ├── public/                        # 静态资源（Logo、导入模板）
 ├── src/                           # 前端（React + Vite）
 │   ├── api/                       # Fetch 客户端与接口定义
 │   ├── components/                # common / layout / feature 三层
 │   ├── hooks/                     # useAuth / useItems / useStudents / useToast …
-│   ├── lib/                       # 校验规则、常量、工具函数
+│   ├── lib/                       # 校验规则、常量、工具函数（含单元测试）
 │   ├── pages/                     # 三个仪表盘 + 登录页
 │   └── types/                     # TypeScript 类型
+├── tools/preview-server.mjs       # 本地预览服务器（生成 README 截图用）
+├── .github/workflows/ci.yml       # CI：typecheck + test + build
 ├── index.html
 ├── wrangler.toml                  # Cloudflare Pages 配置
 ├── .env.example                   # 前端变量模板
@@ -322,6 +344,14 @@ flowchart LR
 - `expire_items`：把 `expires_at` 已过的上架商品批量下架（惰性清理，列表与兑换接口都会先调用）
 
 兑换记录保存商品名与价格快照，后续改价或下架都不会让历史记录失真。
+
+### 测试
+
+| 层级 | 位置 | 运行方式 |
+| --- | --- | --- |
+| 前端单元测试 | `src/lib/*.test.ts`（40 个用例：表单校验、密码强度、日期时间往返转换） | `npm test` |
+| 数据库函数 | `database/tests/redeem_item.test.sql`（兑换扣分/扣库存/库存不足/积分不足/免费商品 5 个场景） | 粘贴进 Supabase SQL Editor 执行，事务内运行并自动回滚 |
+| 持续集成 | `.github/workflows/ci.yml` | push / PR 自动跑 typecheck + test + build |
 
 ### 安全模型
 
@@ -464,6 +494,7 @@ npm run deploy      # 首次需先 npx wrangler login
 - [x] 批量 Excel 加分
 - [x] 商品分组上下架、免费商品、到期自动下架
 - [x] 账户设置（改密码 / 改资料 / 注销）
+- [x] 单元测试与 CI
 - [ ] 下载次数限制（带计数的下载代理）
 - [ ] 兑换记录导出 Excel
 - [ ] 站内消息通知（兑换成功 / 发放提醒）
@@ -482,20 +513,15 @@ npm run deploy      # 首次需先 npx wrangler login
 
 ## 贡献指南
 
-1. Fork 本仓库并从 `main` 切出功能分支：`git checkout -b feat/your-feature`
-2. 安装依赖并启动本地环境（见 [快速开始](#快速开始)）
-3. 提交前请确保通过检查：
+详细规则见 **[CONTRIBUTING.md](./CONTRIBUTING.md)**，这里只列要点：
 
-   ```bash
-   npm run typecheck
-   npm run build
-   ```
+1. Fork 并从 `main` 切分支：`git checkout -b feat/your-feature`
+2. 提交前跑通 `npm run typecheck`、`npm test`、`npm run build`
+3. 数据库结构变更**新增**迁移脚本，不要改已发布的旧脚本
+4. 提交信息用 `feat:` / `fix:` / `docs:` / `refactor:` 前缀
+5. 发起 PR 并说明动机、影响范围与验证方式
 
-4. 涉及数据库结构变更时，**新增**一个 `database/migrations/NN_xxx.sql` 增量脚本，不要修改已发布的旧脚本
-5. 提交信息建议使用 `feat:` / `fix:` / `docs:` / `refactor:` 前缀
-6. 发起 Pull Request，说明改动动机、影响范围与验证方式
-
-代码风格：TypeScript 严格模式、函数式组件 + Hooks、中文注释、Tailwind 原子类。
+**第一次参与？** 带 [`good first issue`](https://github.com/GB233-grt/class-app/labels/good%20first%20issue) 标签的 Issue 都是刻意留出的入门任务，直接回一句「我来试试」即可。
 
 ---
 
@@ -505,23 +531,21 @@ npm run deploy      # 首次需先 npx wrangler login
 
 ---
 
-## 贡献者
+## 开发工具与致谢
 
-本项目的设计、实现与文档，由作者与以下 AI 助手协作完成：
+本项目的设计与实现由作者完成并负责；开发过程中使用了以下 AI 编程助手作为**工具**，用于辅助编码、方案讨论与文档撰写。所有设计决策、代码审阅与最终实现均由作者把关。
 
-| 贡献者 | 说明 |
+| 工具 | 参与内容 |
 | --- | --- |
-| 🧠 [智谱 GLM](https://www.zhipuai.cn/) | 参与设计、实现、文档与编程 |
-| 🐋 [深度求索 DeepSeek](https://www.deepseek.com/) | 参与设计、实现、文档与编程 |
+| 🧠 [智谱 GLM](https://www.zhipuai.cn/) | 参与设计、实现、文档与编程（辅助） |
+| 🐋 [深度求索 DeepSeek](https://www.deepseek.com/) | 参与设计、实现、文档与编程（辅助） |
 | ☁️ [阿里千问 Qwen](https://tongyi.aliyun.com/qianwen/) | 提供结构目录与基础指导 |
-| 🔬 [上海人工智能实验室](https://www.shlab.org.cn/) | 参与设计、实现、文档与编程 |
+| 🔬 [上海人工智能实验室](https://www.shlab.org.cn/) | 参与设计、实现、文档与编程（辅助） |
 
----
-
-## 致谢
+### 技术与服务致谢
 
 - [React](https://react.dev) · [Vite](https://vitejs.dev) · [Tailwind CSS](https://tailwindcss.com)
-- [Lucide](https://lucide.dev) 图标库
+- [Lucide](https://lucide.dev) 图标库 · [Vitest](https://vitest.dev) 测试框架
 - [Supabase](https://supabase.com) 提供的托管 PostgreSQL 与认证
 - [Cloudflare Pages](https://pages.cloudflare.com) 提供的静态托管与边缘函数
 - 以及所有在课堂上真正使用它的老师和同学
