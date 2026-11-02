@@ -218,6 +218,9 @@ BEGIN
       RAISE EXCEPTION '该商品未配置下载链接，请联系管理员';
     END IF;
 
+    -- 网络商品同样必须真实扣减学生积分
+    UPDATE students SET points = v_new_balance WHERE id = p_student_id;
+
     INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity, status, download_url)
     VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'fulfilled', v_download_url)
     RETURNING id INTO v_redemptionId;

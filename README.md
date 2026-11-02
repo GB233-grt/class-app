@@ -54,7 +54,8 @@
 │   │   ├── 07_teacher_and_fulfillment.sql  # 教师角色/数量兑换/发放状态
 │   │   ├── 08_batch_points_adjust.sql  # 批量积分调整
 │   │   ├── 09_item_types.sql           # 商品类型（实物/网络）+ 下载链接
-│   │   └── 10_system_settings.sql      # 系统配置表（是否允许自助修改个人信息）
+│   │   ├── 10_system_settings.sql      # 系统配置表（是否允许自助修改个人信息）
+│   │   └── 11_fix_digital_redeem_points.sql  # 修复：网络商品兑换未扣积分
 │   └── all-in-one/
 │       ├── step1-schema.sql            # 一键建表（含全部表/函数/RLS）
 │       └── step2-seed.sql              # 一键种子数据
@@ -137,12 +138,13 @@ cp .dev.vars.example .dev.vars
 
 **全新库**：进入 Supabase 控制台 → **SQL Editor**，按文件名顺序依次粘贴执行 `database/all-in-one/step1-schema.sql` 和 `database/all-in-one/step2-seed.sql`。
 
-**已有库升级**：按文件名顺序执行 `database/migrations/` 下未执行过的增量脚本（`07~10`）：
+**已有库升级**：按文件名顺序执行 `database/migrations/` 下未执行过的增量脚本（`07~11`）：
 
 1. `07_teacher_and_fulfillment.sql` —— 教师角色 + 按数量兑换 + 发放状态流转
 2. `08_batch_points_adjust.sql` —— 批量积分调整（Excel）
 3. `09_item_types.sql` —— 商品类型（实物商品/网络商品）+ 网络商品自动发卡下载链接
 4. `10_system_settings.sql` —— 系统配置表 `system_settings`（管理员可在「系统设置」中开关「允许学生自助修改昵称/学号」）
+5. `11_fix_digital_redeem_points.sql` —— **重要修复**：网络商品兑换不扣积分（可 1 积分无限兑换）
 
 > 每次升级后请重新部署（`npm run deploy`），使后端 API 与数据库结构匹配。
 
