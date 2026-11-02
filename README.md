@@ -507,10 +507,10 @@ npm run deploy      # 首次需先 npx wrangler login
 
 | 贡献者 | 说明 |
 | --- | --- |
-| 🧠 [智谱 GLM](https://www.zhipuai.cn/) | 共同参与设计、实现与文档 |
-| 🐋 [深度求索 DeepSeek](https://www.deepseek.com/) | 共同参与设计、实现与文档 |
-| ☁️ [阿里千问 Qwen](https://tongyi.aliyun.com/qianwen/) | 共同参与设计、实现与文档（提供项目结构等） |
-| 🔬 [上海人工智能实验室](https://www.shlab.org.cn/) | 共同参与设计、实现与文档 |
+| 🧠 [智谱 GLM](https://www.zhipuai.cn/) | 参与设计、实现、文档与编程 |
+| 🐋 [深度求索 DeepSeek](https://www.deepseek.com/) | 参与设计、实现、文档与编程 |
+| ☁️ [阿里千问 Qwen](https://tongyi.aliyun.com/qianwen/) | 提供结构目录与基础指导 |
+| 🔬 [上海人工智能实验室](https://www.shlab.org.cn/) | 参与设计、实现、文档与编程 |
 
 ---
 
