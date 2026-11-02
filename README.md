@@ -149,7 +149,7 @@ cp .dev.vars.example .dev.vars
 4. `10_system_settings.sql` —— 系统配置表 `system_settings`（管理员可在「系统设置」中开关「允许学生自助修改昵称/学号」）
 5. `11_fix_digital_redeem_points.sql` —— **重要修复**：网络商品兑换不扣积分（可 1 积分无限兑换）
 6. `12_digital_stock_limit.sql` —— **重要修复**：网络商品按库存限量（包含 11 的扣积分修复，可直接替代 11）
-7. `13_allow_zero_cost_items.sql` —— 允许商品价格为 0（免费商品），需在 12 之后执行
+7. `13_allow_zero_cost_items.sql` —— 允许商品价格为 0（免费商品）；已包含 11、12 的修复，可单独执行
 
 > 每次升级后请重新部署（`npm run deploy`），使后端 API 与数据库结构匹配。
 
