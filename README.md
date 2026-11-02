@@ -44,6 +44,7 @@
 - [更新日志](#更新日志)
 - [贡献指南](#贡献指南)
 - [许可证](#许可证)
+- [贡献者](#贡献者)
 - [致谢](#致谢)
 
 ---
@@ -497,6 +498,19 @@ npm run deploy      # 首次需先 npx wrangler login
 ## 许可证
 
 本项目基于 [MIT License](./LICENSE) 开源。
+
+---
+
+## 贡献者
+
+本项目的设计、实现与文档，由作者与以下 AI 助手协作完成：
+
+| 贡献者 | 说明 |
+| --- | --- |
+| 🧠 [智谱 GLM](https://www.zhipuai.cn/) | 共同参与设计、实现与文档 |
+| 🐋 [深度求索 DeepSeek](https://www.deepseek.com/) | 共同参与设计、实现与文档 |
+| ☁️ [阿里千问 Qwen](https://tongyi.aliyun.com/qianwen/) | 共同参与设计、实现与文档（提供项目结构等） |
+| 🔬 [上海人工智能实验室](https://www.shlab.org.cn/) | 共同参与设计、实现与文档 |
 
 ---
 
