@@ -210,16 +210,23 @@ BEGIN
   IF v_balance < v_total THEN
     RAISE EXCEPTION '积分不足，还需 % 积分', (v_total - v_balance);
   END IF;
+
+  -- 库存校验：实物商品与网络商品统一按库存限量
+  IF v_stock < p_quantity THEN
+    RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
+  END IF;
+
   v_new_balance := v_balance - v_total;
 
-  -- 网络商品：不扣库存，兑换后自动标记"已发放"并返回下载链接（无需教师干预）
+  -- 扣积分 + 扣库存（两类商品都要执行）
+  UPDATE students SET points = v_new_balance WHERE id = p_student_id;
+  UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
+
   IF v_type = 'digital' THEN
+    -- 网络商品：兑换后自动标记"已发放"并返回下载链接（无需教师干预）
     IF v_download_url IS NULL OR v_download_url = '' THEN
       RAISE EXCEPTION '该商品未配置下载链接，请联系管理员';
     END IF;
-
-    -- 网络商品同样必须真实扣减学生积分
-    UPDATE students SET points = v_new_balance WHERE id = p_student_id;
 
     INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity, status, download_url)
     VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'fulfilled', v_download_url)
@@ -228,18 +235,12 @@ BEGIN
     INSERT INTO points_ledger (student_id, delta, balance_after, reason)
     VALUES (
       p_student_id, -v_total, v_new_balance,
-      '兑换商品：' || v_name || '（已发放下载链接，请到兑换记录查看）'
+      '兑换商品：' || v_name
+        || (CASE WHEN p_quantity > 1 THEN ' × ' || p_quantity ELSE '' END)
+        || '（已发放下载链接，请到兑换记录查看）'
     );
   ELSE
-    -- 实物商品：先检查库存，库存不足则终止
-    IF v_stock < p_quantity THEN
-      RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
-    END IF;
-
-    UPDATE students SET points = v_new_balance WHERE id = p_student_id;
-    UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
-
-    -- 兑换记录（快照商品名称与单价，防止商品变更后历史记录失真）
+    -- 实物商品：待教师线下发放（快照商品名称与单价，防止商品变更后历史记录失真）
     INSERT INTO redemptions (student_id, item_id, item_name, cost, quantity, status, download_url)
     VALUES (p_student_id, p_item_id, v_name, v_cost, p_quantity, 'pending', NULL)
     RETURNING id INTO v_redemptionId;

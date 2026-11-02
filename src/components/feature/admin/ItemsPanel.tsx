@@ -182,12 +182,11 @@ export function ItemsPanel() {
     },
     {
       header: '库存',
-      render: (item) =>
-        item.type === 'digital' ? (
-          <span className="text-ink-400">不限</span>
-        ) : (
-          <span className="text-ink-700">{formatPoints(item.stock)}</span>
-        ),
+      render: (item) => (
+        <span className={item.stock <= 0 ? 'font-medium text-red-600' : 'text-ink-700'}>
+          {formatPoints(item.stock)}
+        </span>
+      ),
     },
     {
       header: '操作',
@@ -357,6 +356,7 @@ export function ItemsPanel() {
               type="number"
               min={0}
               placeholder="50"
+              hint={itemType === 'digital' ? '网络商品的库存＝可被兑换的总次数' : undefined}
               error={errors.stock?.message}
               {...register('stock')}
             />
