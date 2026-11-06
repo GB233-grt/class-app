@@ -146,6 +146,13 @@ function apiPayload(pathname) {
   // 学生端只应看到上架商品（与真实接口行为一致）
   if (pathname === '/api/items') return role === 'student' ? ITEMS.filter((i) => i.is_active) : ITEMS;
   if (pathname === '/api/students') return STUDENTS;
+  if (pathname === '/api/students/award') {
+    // 课堂模式加减分：返回一个合理结果（不改真实数据）
+    return { student_id: 'preview', delta: 1, reason: '课堂表现奖励', balance_after: 269 };
+  }
+  if (pathname === '/api/students/award-batch') {
+    return { awarded: 0, reason: '', results: [], skipped: [] };
+  }
   if (pathname === '/api/stats') return STATS;
   if (pathname === '/api/leaderboard') return LEADERBOARD;
   if (pathname === '/api/redemptions') return STAFF_REDEMPTIONS;

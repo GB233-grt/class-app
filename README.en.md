@@ -23,8 +23,8 @@
 </div>
 
 <div align="center">
-  <img src="./docs/screenshots/student.png" width="880" alt="Student dashboard: points wallet and store" />
-  <sub>Student dashboard · points wallet / store / stock and free items</sub>
+  <img src="./docs/screenshots/demo.gif" width="880" alt="Classroom mode roll call plus Excel bulk award demo" />
+  <sub>30-second demo: classroom roll call → instant scoring → Excel bulk award with live preview</sub>
 </div>
 
 <br/>
@@ -160,6 +160,10 @@ npm run deploy      # build and deploy to Cloudflare Pages
 | --- | --- |
 | <img src="./docs/screenshots/teacher.png" alt="Teacher fulfilment queue" /> | <img src="./docs/screenshots/admin.png" alt="Admin item management" /> |
 
+| Classroom mode (projector) | Student · store |
+| --- | --- |
+| <img src="./docs/screenshots/classroom.png" alt="Classroom mode: roll call and instant scoring" /> | <img src="./docs/screenshots/student.png" alt="Student store" /> |
+
 <details>
 <summary>Login page</summary>
 
@@ -185,9 +189,10 @@ npm run deploy      # build and deploy to Cloudflare Pages
 
 ### 👩‍🏫 Teachers
 
+- **Classroom mode** (projector-ready): fullscreen big buttons, one-tap random roll call plus instant scoring; `Space` to roll, `+/-` to score, `Esc` to exit
 - **Fulfilment queue**: review student and item, then mark as delivered
 - **Award points**: add or deduct points for one student with a required reason
-- **Bulk award**: upload an Excel sheet, score an entire class by formula in one go
+- **Bulk award**: drag-and-drop an Excel sheet → formula validated live → per-row preview (ready / skipped / invalid) → filter to problem rows only → atomic commit
 
 ### 🛠️ Admins
 

@@ -23,8 +23,8 @@
 </div>
 
 <div align="center">
-  <img src="./docs/screenshots/student.png" width="880" alt="学生端：积分钱包与兑换商城" />
-  <sub>学生端 · 积分钱包 / 兑换商城 / 库存与免费商品</sub>
+  <img src="./docs/screenshots/demo.gif" width="880" alt="课堂模式点名加分 + Excel 批量加分演示" />
+  <sub>30 秒演示：课堂模式随机点名 → 即时加减分 → Excel 批量加分实时预览</sub>
 </div>
 
 <br/>
@@ -160,6 +160,10 @@ npm run deploy      # 构建并部署到 Cloudflare Pages
 | --- | --- |
 | <img src="./docs/screenshots/teacher.png" alt="教师端兑换发放队列" /> | <img src="./docs/screenshots/admin.png" alt="管理端商品管理" /> |
 
+| 课堂模式（投屏） | 学生端 · 兑换商城 |
+| --- | --- |
+| <img src="./docs/screenshots/classroom.png" alt="课堂模式：随机点名与即时加减分" /> | <img src="./docs/screenshots/student.png" alt="学生端：积分钱包与兑换商城" /> |
+
 <details>
 <summary>登录页</summary>
 
@@ -185,9 +189,10 @@ npm run deploy      # 构建并部署到 Cloudflare Pages
 
 ### 👩‍🏫 教师端
 
+- **课堂模式**（投屏用）：全屏大按钮，一键随机点名 + 即时加减分；支持 `空格` 点名、`+/-` 加减分、`Esc` 退出，适合希沃大屏与翻页笔
 - **兑换发放**：待发放队列，核对学生与商品后标记「已发放」
 - **学生加分**：单人加减分，需填写原因（带常见原因联想）
-- **批量加分**：上传 Excel，按公式批量判分入账，一次处理一个班
+- **批量加分**：Excel **拖拽上传** → 公式实时校验 → 逐行预览（待入账 / 0 分不变更 / 校验失败三类状态）→ 只看问题行 → 确认后单事务入账
 
 ### 🛠️ 管理端
 

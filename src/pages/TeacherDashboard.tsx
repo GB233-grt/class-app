@@ -2,19 +2,32 @@
  * 教师仪表盘：侧边栏导航（教学工具 / 我的账户）+ 欢迎横幅 + 面板
  */
 import { useEffect, useState } from 'react';
-import { Award, ClipboardList, FileSpreadsheet, GraduationCap, UserCog } from 'lucide-react';
+import { Award, ClipboardList, FileSpreadsheet, GraduationCap, Presentation, UserCog } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { FulfillmentPanel } from '../components/feature/teacher/FulfillmentPanel';
 import { AwardPointsPanel } from '../components/feature/teacher/AwardPointsPanel';
 import { BulkAwardPanel } from '../components/feature/teacher/BulkAwardPanel';
+import { ClassroomMode } from '../components/feature/teacher/ClassroomMode';
 import { SettingsPanel } from '../components/feature/settings/SettingsPanel';
 import { redemptionsApi } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import type { StaffRedemption } from '../types';
 
-type TeacherTabKey = 'fulfillment' | 'award' | 'bulk-award' | 'account';
+type TeacherTabKey = 'classroom' | 'fulfillment' | 'award' | 'bulk-award' | 'account';
+
+const TAB_KEYS: TeacherTabKey[] = ['classroom', 'fulfillment', 'award', 'bulk-award', 'account'];
+
+/** 支持通过 #classroom 之类的锚点直达某个标签页（方便老师收藏「课堂模式」） */
+function readTabFromHash(): TeacherTabKey {
+  const hash = window.location.hash.replace('#', '') as TeacherTabKey;
+  return TAB_KEYS.includes(hash) ? hash : 'fulfillment';
+}
 
 const GROUPS: SidebarNavGroup[] = [
+  {
+    title: '课堂教学',
+    items: [{ key: 'classroom', label: '课堂模式', icon: Presentation }],
+  },
   {
     title: '教学工具',
     items: [
@@ -31,7 +44,22 @@ const GROUPS: SidebarNavGroup[] = [
 
 export default function TeacherDashboard() {
   const { profile, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<TeacherTabKey>('fulfillment');
+  const [activeTab, setActiveTab] = useState<TeacherTabKey>(readTabFromHash);
+
+  // 标签页与地址栏锚点同步，刷新后仍停在原页面
+  useEffect(() => {
+    const next = `#${activeTab}`;
+    if (window.location.hash !== next) {
+      window.history.replaceState(null, '', next);
+    }
+  }, [activeTab]);
+
+  // 支持浏览器前进/后退
+  useEffect(() => {
+    const onHashChange = () => setActiveTab(readTabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // 侧边栏「最近兑换」与待发放计数（发放面板内部另有独立数据源）
   const [staffRedemptions, setStaffRedemptions] = useState<StaffRedemption[]>([]);
@@ -53,6 +81,11 @@ export default function TeacherDashboard() {
 
   const pendingCount = staffRedemptions.filter((record) => record.status === 'pending').length;
   const isAccount = activeTab === 'account';
+
+  // 课堂模式是全屏投屏界面，不套侧边栏
+  if (activeTab === 'classroom') {
+    return <ClassroomMode onExit={() => setActiveTab('fulfillment')} />;
+  }
 
   return (
     <SidebarLayout

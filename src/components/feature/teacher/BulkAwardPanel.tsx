@@ -7,7 +7,18 @@
  * （判断值 90 分以上加 10 分，80 分以上加 5 分，其余不加）
  */
 import { useMemo, useRef, useState } from 'react';
-import { CheckCircle2, CircleHelp, Download, Eye, FileSpreadsheet, Sigma, Upload, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleHelp,
+  Download,
+  Eye,
+  FileSpreadsheet,
+  Sigma,
+  Upload,
+  X,
+  XCircle,
+} from 'lucide-react';
 import { studentsApi } from '../../../api';
 import { useStudents } from '../../../hooks/useStudents';
 import { useToast } from '../../../hooks/useToast';
@@ -95,6 +106,10 @@ export function BulkAwardPanel() {
   const [showFormulaHelp, setShowFormulaHelp] = useState(false);
   /** 入账成功后的结果（按学生 ID），预览中展示「已加分」 */
   const [applied, setApplied] = useState<Map<string, { delta: number; balance_after: number }> | null>(null);
+  /** 是否正在把文件拖到上传区 */
+  const [dragging, setDragging] = useState(false);
+  /** 预览表是否只看问题行 */
+  const [onlyErrors, setOnlyErrors] = useState(false);
 
   // 编译判断公式（实时校验；公式为空视为未填写）
   const { formula, formulaError } = useMemo<{
@@ -202,11 +217,20 @@ export function BulkAwardPanel() {
     applied === null &&
     stats.readyCount > 0;
 
-  // 选择文件：解析 + 逐行校验
+  // 选择文件：先做类型/大小校验，再解析
   const handleFile = async (file: File) => {
+    resetPreviewState();
     setFileName(file.name);
-    setParseError(null);
-    setApplied(null);
+
+    if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+      setParseError(`「${file.name}」不是支持的格式，请上传 .xlsx / .xls / .csv`);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setParseError('文件超过 5MB，请拆分后再上传（单批最多 200 行）');
+      return;
+    }
+
     try {
       const { rows } = await parseBulkAwardWorkbook(file);
       setFileRows(rows);
@@ -216,12 +240,27 @@ export function BulkAwardPanel() {
     }
   };
 
-  const resetFile = () => {
+  /** 清掉与「当前文件」相关的状态（不清公式与原因） */
+  const resetPreviewState = () => {
     setFileRows(null);
-    setFileName('');
     setParseError(null);
     setApplied(null);
+    setOnlyErrors(false);
+  };
+
+  const resetFile = () => {
+    resetPreviewState();
+    setFileName('');
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // 拖拽上传
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    if (submitting) return;
+    const file = event.dataTransfer.files?.[0];
+    if (file) void handleFile(file);
   };
 
   // 客户端生成标准模板（学号 + 姓名 + 判断值）
@@ -393,7 +432,7 @@ export function BulkAwardPanel() {
         </div>
       </div>
 
-      {/* 2. 上传 Excel */}
+      {/* 2. 上传 Excel（支持拖拽） */}
       <div className="mt-5 space-y-3">
         <input
           ref={fileInputRef}
@@ -405,10 +444,48 @@ export function BulkAwardPanel() {
             if (file) void handleFile(file);
           }}
         />
+
+        {/* 拖拽区：没有文件时是主入口，有文件后收成一条状态条 */}
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            if (!submitting) setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => !submitting && fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              if (!submitting) fileInputRef.current?.click();
+            }
+          }}
+          className={cn(
+            'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-5 py-7 text-center transition-colors',
+            dragging
+              ? 'border-brand-500 bg-brand-50'
+              : 'border-ink-200 bg-ink-50/60 hover:border-brand-300 hover:bg-brand-50/40',
+            submitting && 'cursor-not-allowed opacity-60',
+          )}
+        >
+          <Upload
+            className={cn('h-7 w-7', dragging ? 'text-brand-600' : 'text-ink-400')}
+            aria-hidden
+          />
+          <p className="text-sm font-medium text-ink-800">
+            {dragging ? '松开即可上传' : '把 Excel 拖到这里，或点击选择文件'}
+          </p>
+          <p className="text-xs text-ink-400">
+            支持 .xlsx / .xls / .csv，单批最多 200 行，文件 ≤ 5MB
+          </p>
+        </div>
+
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => fileInputRef.current?.click()} disabled={submitting}>
+          <Button onClick={() => fileInputRef.current?.click()} disabled={submitting} variant="outline" size="sm">
             <Upload className="h-4 w-4" />
-            {fileRows ? '重新选择文件' : '选择 Excel 文件'}
+            {fileRows ? '换一个文件' : '选择文件'}
           </Button>
           <button
             type="button"
@@ -424,9 +501,20 @@ export function BulkAwardPanel() {
             {showTemplate ? '收起模板' : '预览模板'}
           </button>
           {fileName && (
-            <span className="flex items-center gap-1.5 text-sm text-ink-500">
-              <FileSpreadsheet className="h-4 w-4" />
-              {fileName}
+            <span className="flex items-center gap-1.5 rounded-lg bg-ink-100 px-2.5 py-1.5 text-sm text-ink-600">
+              <FileSpreadsheet className="h-4 w-4 text-brand-600" />
+              <span className="max-w-[16rem] truncate">{fileName}</span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  resetFile();
+                }}
+                aria-label="移除已选文件"
+                className="rounded p-0.5 text-ink-400 transition-colors hover:bg-ink-200 hover:text-ink-700"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </span>
           )}
         </div>
@@ -484,7 +572,44 @@ export function BulkAwardPanel() {
             </Button>
           </div>
 
-          <DataTable columns={columns} rows={preview} rowKey={(row) => String(row.index)} />
+          {/* 问题行汇总：一眼看到「哪几行没匹配上」 */}
+          {stats.errorCount > 0 && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-red-700">
+                  <AlertTriangle className="h-4 w-4" />
+                  {stats.errorCount} 行需要处理（这些行不会被加分）
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOnlyErrors((v) => !v)}
+                  className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                >
+                  {onlyErrors ? '显示全部行' : '只看问题行'}
+                </button>
+              </div>
+              <ul className="mt-2 space-y-1 text-xs text-red-600">
+                {preview
+                  .filter((row) => row.status === 'error')
+                  .slice(0, 3)
+                  .map((row) => (
+                    <li key={row.index}>
+                      第 {row.index} 行{row.student_no || row.name ? `（${row.student_no || row.name}）` : ''}：
+                      {row.message}
+                    </li>
+                  ))}
+                {stats.errorCount > 3 && (
+                  <li className="text-red-400">…另有 {stats.errorCount - 3} 行，点击「只看问题行」查看</li>
+                )}
+              </ul>
+            </div>
+          )}
+
+          <DataTable
+            columns={columns}
+            rows={onlyErrors ? preview.filter((row) => row.status === 'error') : preview}
+            rowKey={(row) => String(row.index)}
+          />
 
           {applied && (
             <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">

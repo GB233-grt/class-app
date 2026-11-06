@@ -71,9 +71,18 @@ interface ImportFieldValues {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NON_NEGATIVE_INT = /^\d{1,6}$/;
 
-/** 归一化表头：去首尾及中间空白、转小写 */
+/**
+ * 归一化表头：去空白、转小写，并去掉括号里的补充说明。
+ *
+ * 这样「判断值（得分）」「学号(编号)」这类表头也能匹配到别名——
+ * 因为项目自带的模板文件用的就是带括号的写法。
+ */
 function normalizeHeader(key: string): string {
-  return String(key).trim().toLowerCase().replace(/\s+/g, '');
+  return String(key)
+    .trim()
+    .toLowerCase()
+    .replace(/[（(][^）)]*[）)]/g, '') // 去掉中文/英文括号及其内容
+    .replace(/\s+/g, '');
 }
 
 /** 从一行原始数据中按别名提取字段 */
