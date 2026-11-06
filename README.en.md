@@ -453,6 +453,16 @@ Except for the login endpoints, every request must carry `Authorization: Bearer 
 5. Click **Deploy**; `functions/` is picked up as Pages Functions automatically
 6. (Optional) Bind a custom domain under **Custom domains**
 
+### Keeping a free project alive
+
+Supabase free-plan projects pause after 7 days without activity. The repo ships `.github/workflows/keep-alive.yml`, which pings the project daily at 12:00 UTC:
+
+1. **Settings → Secrets and variables → Actions → Variables**: add `SUPABASE_URL` (e.g. `https://xxxx.supabase.co`)
+2. Optionally add `SUPABASE_ANON_KEY` so the REST ping carries an `apikey` header
+3. **Actions → Supabase Keep-Alive → Run workflow** to verify it once
+
+> GitHub disables scheduled workflows after 60 days without commits — trigger it manually now and then, or keep committing.
+
 You can also deploy from the command line:
 
 ```bash

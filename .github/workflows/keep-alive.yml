@@ -1,0 +1,117 @@
+# ============================================================
+# Supabase 保活 —— 防止免费套餐项目 7 天无活动被自动暂停
+#
+# 原理：Supabase 免费项目在连续 7 天没有任何 API 请求后会被 pause。
+#      这里每天打一次轻量请求，让它始终处于活跃状态。
+#
+# 需要配置（二选一，推荐用 Variables）：
+#   · Variables（Settings → Secrets and variables → Actions → Variables）
+#       SUPABASE_URL        必填，例如 https://xxxx.supabase.co
+#       SUPABASE_ANON_KEY   选填，填了会带 apikey 头，返回 200 更干净
+#   · Secrets 同名变量同样可用（URL 不是机密，放 Variables 更方便核对）
+#
+# 手动触发：Actions → Supabase Keep-Alive → Run workflow
+# ============================================================
+
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # 每天 UTC 12:00（北京时间 20:00）执行一次
+    # 注意：GitHub 的 cron 在高峰期可能延迟几分钟到几十分钟，属于正常现象
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+
+# 同一时间只跑一个，避免手动触发和定时任务撞车
+concurrency:
+  group: supabase-keep-alive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Resolve Supabase URL
+        id: resolve
+        env:
+          URL_FROM_VARS: ${{ vars.SUPABASE_URL }}
+          URL_FROM_SECRETS: ${{ secrets.SUPABASE_URL }}
+        run: |
+          set -euo pipefail
+          url="${URL_FROM_VARS:-${URL_FROM_SECRETS:-}}"
+          if [ -z "$url" ]; then
+            echo "::error::未配置 SUPABASE_URL。请在 Settings → Secrets and variables → Actions → Variables 中添加 SUPABASE_URL（例如 https://xxxx.supabase.co）"
+            exit 1
+          fi
+          # 去掉结尾斜杠，避免拼出 //auth/v1/health
+          echo "url=${url%/}" >> "$GITHUB_OUTPUT"
+          echo "✓ 目标端点：${url%/}"
+
+      - name: Ping health endpoint
+        env:
+          SUPABASE_URL: ${{ steps.resolve.outputs.url }}
+        run: |
+          set -uo pipefail
+          # /auth/v1/health 是 Supabase Auth 的健康检查，不需要鉴权，200 即代表项目已唤醒
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              --max-time 30 --retry 2 --retry-delay 5 \
+              "$SUPABASE_URL/auth/v1/health" || echo "000")
+            echo "第 ${attempt} 次：HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "✓ Auth 健康检查通过"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Auth 健康检查连续失败（最后一次 HTTP $code），请检查 SUPABASE_URL 是否正确，或项目是否已被暂停"
+          exit 1
+
+      - name: Ping REST endpoint
+        env:
+          SUPABASE_URL: ${{ steps.resolve.outputs.url }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          set -uo pipefail
+          if [ -n "${SUPABASE_ANON_KEY:-}" ]; then
+            # 带 apikey 请求 PostgREST 根路径，正常返回 200 + OpenAPI 描述
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              --max-time 30 \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              "$SUPABASE_URL/rest/v1/" || echo "000")
+            echo "REST（带 apikey）：HTTP $code"
+          else
+            # 没配 anon key 时只探测连通性：401 也说明项目是活的
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              --max-time 30 \
+              "$SUPABASE_URL/rest/v1/" || echo "000")
+            echo "REST（无 apikey）：HTTP $code"
+          fi
+
+          # 200/401/404 都说明服务在线；只有连不上（000）或 5xx 才视为异常
+          case "$code" in
+            2*|401|404)
+              echo "✓ REST 端点可达（HTTP $code）"
+              ;;
+            *)
+              echo "::warning::REST 端点返回 HTTP $code，可能项目正在恢复或被暂停，请稍后手动确认"
+              ;;
+          esac
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Supabase 保活"
+            echo ""
+            echo "- 目标：\`${{ steps.resolve.outputs.url }}\`"
+            echo "- 时间：$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo ""
+            echo "> 免费项目连续 7 天无活动会被暂停，本工作流每天打一次请求即可避免。"
+          } >> "$GITHUB_STEP_SUMMARY"

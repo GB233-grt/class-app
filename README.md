@@ -455,6 +455,16 @@ flowchart LR
 5. 点击 **Deploy**；`functions/` 会被自动识别为 Pages Functions
 6. （可选）**Custom domains** 绑定自有域名
 
+### 免费项目保活
+
+Supabase 免费套餐连续 7 天无活动会被暂停。仓库自带 `.github/workflows/keep-alive.yml`，每天 UTC 12:00 自动打一次轻量请求保活：
+
+1. **Settings → Secrets and variables → Actions → Variables** 新增 `SUPABASE_URL`（值形如 `https://xxxx.supabase.co`）
+2. 可选再加 `SUPABASE_ANON_KEY`（带上 apikey 头，返回 200 更干净）
+3. **Actions → Supabase Keep-Alive → Run workflow** 手动跑一次验证
+
+> GitHub 会在仓库 60 天无提交后自动停用定时工作流，长期不动的话记得偶尔提交或手动触发一次。
+
 也可以命令行部署：
 
 ```bash
