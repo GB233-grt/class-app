@@ -56,21 +56,34 @@ jobs:
       - name: Ping health endpoint
         env:
           SUPABASE_URL: ${{ steps.resolve.outputs.url }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
         run: |
           set -uo pipefail
-          # /auth/v1/health 是 Supabase Auth 的健康检查，不需要鉴权，200 即代表项目已唤醒
+          # 新版 Supabase（sb_publishable_/sb_secret_ 密钥模型）的网关对 /auth/v1/health
+          # 也要求带 apikey，否则返回 401。这里两个都兼容：
+          #   · 有 apikey → 正常应返回 200
+          #   · 没有 apikey → 401/403 同样说明项目在线（保活只关心「请求打到了」）
+          # 只有连不上（000）或 5xx 才视为异常。
+          auth_args=()
+          if [ -n "${SUPABASE_ANON_KEY:-}" ]; then
+            auth_args=(-H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          fi
+
           for attempt in 1 2 3; do
             code=$(curl -sS -o /dev/null -w '%{http_code}' \
               --max-time 30 --retry 2 --retry-delay 5 \
+              "${auth_args[@]}" \
               "$SUPABASE_URL/auth/v1/health" || echo "000")
             echo "第 ${attempt} 次：HTTP $code"
-            if [ "$code" = "200" ]; then
-              echo "✓ Auth 健康检查通过"
-              exit 0
-            fi
+            case "$code" in
+              2*|401|403)
+                echo "✓ 项目在线（HTTP $code）"
+                exit 0
+                ;;
+            esac
             sleep 10
           done
-          echo "::error::Auth 健康检查连续失败（最后一次 HTTP $code），请检查 SUPABASE_URL 是否正确，或项目是否已被暂停"
+          echo "::error::健康检查连续失败（最后一次 HTTP $code）：请确认 SUPABASE_URL 是否正确、项目是否被暂停，或 SUPABASE_ANON_KEY 是否失效"
           exit 1
 
       - name: Ping REST endpoint
@@ -96,7 +109,7 @@ jobs:
 
           # 200/401/404 都说明服务在线；只有连不上（000）或 5xx 才视为异常
           case "$code" in
-            2*|401|404)
+            2*|401|403|404)
               echo "✓ REST 端点可达（HTTP $code）"
               ;;
             *)
