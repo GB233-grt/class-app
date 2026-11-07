@@ -118,6 +118,8 @@ export const userApi = {
   getSystemSettings: () => api.get<SystemSettingRecord[]>('/user/system-settings'),
   /** 更新当前用户资料（昵称 / 学号） */
   update: (payload: UpdateProfilePayload) => api.put<Student>('/user', payload),
+  /** 当前学生的兑换汇总（件数 / 消耗积分），用于分页场景下的准确统计 */
+  summary: () => api.get<{ total_items: number; total_spent: number }>('/user/summary'),
   /** 注销账号（旧密码确认，不可逆） */
   deleteAccount: (password: string) => api.delete<{ message: string }>('/user', { old_password: password }),
 };

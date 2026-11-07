@@ -1,7 +1,7 @@
 /**
  * 学生仪表盘：侧边栏导航（积分商店 / 我的记录）+ 积分卡片 + 统计 + 面板
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Coins, Gift, ReceiptText, ScrollText, Settings, ShoppingBag, Trophy } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
@@ -10,6 +10,7 @@ import { RedemptionsPanel } from '../components/feature/student/RedemptionsPanel
 import { LedgerPanel } from '../components/feature/student/LedgerPanel';
 import { LeaderboardPanel } from '../components/feature/student/LeaderboardPanel';
 import { SettingsPanel } from '../components/feature/settings/SettingsPanel';
+import { userApi } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { useRedemptions } from '../hooks/useRedemptions';
 import { formatPoints } from '../lib/utils';
@@ -48,14 +49,31 @@ export default function StudentDashboard() {
     refresh: refreshRedemptions,
   } = useRedemptions();
 
-  // 累计兑换件数 = 所有兑换记录的数量之和；累计消耗积分 = 单价 × 数量
+  // 累计兑换件数 / 消耗积分：由数据库聚合，避免只统计到已加载的分页
+  const [summary, setSummary] = useState<{ total_items: number; total_spent: number } | null>(null);
+
+  const loadSummary = useCallback(async () => {
+    try {
+      setSummary(await userApi.summary());
+    } catch {
+      // 汇总失败不阻塞页面，退回按已加载记录估算
+      setSummary(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSummary();
+  }, [loadSummary]);
+
   const totalItems = useMemo(
-    () => redemptions.reduce((sum, record) => sum + (record.quantity ?? 1), 0),
-    [redemptions],
+    () => summary?.total_items ?? redemptions.reduce((sum, record) => sum + (record.quantity ?? 1), 0),
+    [summary, redemptions],
   );
   const totalSpent = useMemo(
-    () => redemptions.reduce((sum, record) => sum + (record.cost ?? 0) * (record.quantity ?? 1), 0),
-    [redemptions],
+    () =>
+      summary?.total_spent ??
+      redemptions.reduce((sum, record) => sum + (record.cost ?? 0) * (record.quantity ?? 1), 0),
+    [summary, redemptions],
   );
 
   // 设置页不需要侧边栏的特色/历史卡片
@@ -122,7 +140,14 @@ export default function StudentDashboard() {
         </section>
 
         {/* 面板内容 */}
-        {activeTab === 'store' && <StorePanel onRedeemed={() => void refreshRedemptions()} />}
+        {activeTab === 'store' && (
+          <StorePanel
+            onRedeemed={() => {
+              void refreshRedemptions();
+              void loadSummary();
+            }}
+          />
+        )}
         {activeTab === 'history' && (
           <RedemptionsPanel
             redemptions={redemptions}
