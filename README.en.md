@@ -546,14 +546,16 @@ Released under the [MIT License](./LICENSE).
 
 ## Tools and Credits
 
-This project was designed and implemented by the author, who owns the decisions and the final code. The following AI coding assistants were used as **tools** during development, for assisted coding, design discussion and documentation drafting.
+Requirements breakdown, trade-offs and code review were handled by the author. The following vendors' model APIs were called as coding aids — **the vendors provide the model and the endpoint; the author wrote the prompts and made the calls**.
 
-| Tool | Involvement |
-| --- | --- |
-| 🧠 [Zhipu GLM](https://www.zhipuai.cn/) | Assisted design, implementation, documentation and coding |
-| 🐋 [DeepSeek](https://www.deepseek.com/) | Assisted design, implementation, documentation and coding |
-| ☁️ [Alibaba Qwen](https://tongyi.aliyun.com/qianwen/) | Project structure and foundational guidance |
-| 🔬 [Shanghai AI Laboratory](https://www.shlab.org.cn/) | Assisted design, implementation, documentation and coding |
+| Model service | Provider | Used for |
+| --- | --- | --- |
+| GLM | [Zhipu AI](https://www.zhipuai.cn/) | Code generation, documentation editing |
+| DeepSeek | [DeepSeek](https://www.deepseek.com/) | Code generation, defect hunting |
+| Qwen | [Alibaba Cloud Qwen](https://tongyi.aliyun.com/qianwen/) | Project structure advice, code generation |
+| InternLM | [Shanghai AI Laboratory](https://www.shlab.org.cn/) | Code generation, design discussion |
+
+> All of the above are API calls. Model output was reviewed by the author before entering the codebase; architecture, the permission model and the consistency design are the author's decisions.
 
 ### Technologies and services
 

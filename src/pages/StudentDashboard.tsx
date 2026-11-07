@@ -42,6 +42,9 @@ export default function StudentDashboard() {
     redemptions,
     loading: redemptionsLoading,
     error: redemptionsError,
+    hasMore: redemptionsHasMore,
+    loadingMore: redemptionsLoadingMore,
+    loadMore: loadMoreRedemptions,
     refresh: refreshRedemptions,
   } = useRedemptions();
 
@@ -126,6 +129,9 @@ export default function StudentDashboard() {
             loading={redemptionsLoading}
             error={redemptionsError}
             onRetry={() => void refreshRedemptions()}
+            hasMore={redemptionsHasMore}
+            loadingMore={redemptionsLoadingMore}
+            onLoadMore={() => void loadMoreRedemptions()}
           />
         )}
         {activeTab === 'ledger' && <LedgerPanel />}

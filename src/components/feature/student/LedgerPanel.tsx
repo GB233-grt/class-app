@@ -1,8 +1,9 @@
 /**
- * 积分明细面板：积分变动流水表格
+ * 积分明细面板：积分变动流水表格（分页加载）
  */
 import { ScrollText } from 'lucide-react';
 import { useLedger } from '../../../hooks/useLedger';
+import { Button } from '../../common/Button';
 import { DataTable, type DataTableColumn } from '../../common/DataTable';
 import { ErrorNotice } from '../../common/States';
 import { cn, formatDateTime, formatPoints } from '../../../lib/utils';
@@ -33,7 +34,7 @@ const columns: DataTableColumn<LedgerEntry>[] = [
 ];
 
 export function LedgerPanel() {
-  const { entries, loading, error, refresh } = useLedger();
+  const { entries, loading, loadingMore, hasMore, error, refresh, loadMore } = useLedger();
 
   if (error) {
     return <ErrorNotice message={error} onRetry={() => void refresh()} />;
@@ -48,6 +49,13 @@ export function LedgerPanel() {
         emptyText="暂无积分明细"
         emptyIcon={ScrollText}
       />
+      {hasMore && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="outline" size="sm" loading={loadingMore} onClick={() => void loadMore()}>
+            加载更多积分明细
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

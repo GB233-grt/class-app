@@ -4,6 +4,7 @@
 import { CheckCircle2, ExternalLink, PackageCheck, ReceiptText } from 'lucide-react';
 import { DataTable, type DataTableColumn } from '../../common/DataTable';
 import { ErrorNotice } from '../../common/States';
+import { Button } from '../../common/Button';
 import { formatDateTime, formatPoints } from '../../../lib/utils';
 import type { FulfillmentStatus, Redemption } from '../../../types';
 
@@ -12,6 +13,12 @@ interface RedemptionsPanelProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  /** 是否还有下一页（后端分页） */
+  hasMore?: boolean;
+  /** 正在加载下一页 */
+  loadingMore?: boolean;
+  /** 加载下一页 */
+  onLoadMore?: () => void;
 }
 
 /** 发放状态徽章 */
@@ -80,7 +87,15 @@ const columns: DataTableColumn<Redemption>[] = [
   },
 ];
 
-export function RedemptionsPanel({ redemptions, loading, error, onRetry }: RedemptionsPanelProps) {
+export function RedemptionsPanel({
+  redemptions,
+  loading,
+  error,
+  onRetry,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+}: RedemptionsPanelProps) {
   if (error) {
     return <ErrorNotice message={error} onRetry={onRetry} />;
   }
@@ -94,6 +109,13 @@ export function RedemptionsPanel({ redemptions, loading, error, onRetry }: Redem
         emptyText="暂无兑换记录"
         emptyIcon={ReceiptText}
       />
+      {hasMore && (
+        <div className="mt-3 flex justify-center">
+          <Button variant="outline" size="sm" loading={loadingMore} onClick={onLoadMore}>
+            加载更多兑换记录
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
