@@ -69,7 +69,7 @@ export default function TeacherDashboard() {
     redemptionsApi
       .listForStaff()
       .then((data) => {
-        if (!cancelled) setStaffRedemptions(data);
+        if (!cancelled) setStaffRedemptions(data.items);
       })
       .catch(() => {
         // 侧边栏记录区容忍失败，主面板数据不受影响

@@ -1,7 +1,8 @@
 /**
  * GET /api/redemptions/:studentId —— 获取兑换记录（本人或教职工）
+ * 分页：?limit=&offset=（默认 50，上限 100），返回 { items, has_more }
  */
-import { HttpError, jsonResponse } from '../../lib/http';
+import { HttpError, parsePagination, pagedResponse } from '../../lib/http';
 import { requireAuth } from '../../lib/auth';
 import { assertStudentAllowed } from '../../lib/rbac';
 import { createUserClient } from '../../lib/supabase';
@@ -19,15 +20,20 @@ export const onRequestGet: PagesFunction<Env, 'studentId'> = async ({ params, re
     await assertStudentAllowed(env, ctx.regionScope, studentId);
   }
 
+  const { limit, offset } = parsePagination(new URL(request.url));
+  // 多取一条用于判断是否还有下一页
   const { data, error } = await createUserClient(env, ctx.token)
     .from('redemptions')
     .select('*')
     .eq('student_id', studentId)
     .order('created_at', { ascending: false })
-    .limit(100);
+    .order('id', { ascending: false })
+    .range(offset, offset + limit);
 
   if (error) {
     throw new HttpError(500, '获取兑换记录失败');
   }
-  return jsonResponse(data ?? []);
+
+  const rows = data ?? [];
+  return pagedResponse(rows.slice(0, limit), rows.length > limit);
 };

@@ -60,20 +60,76 @@ async function verifyTurnstile(env: Env, request: Request, token: string | null)
   }
 }
 
+
+// ------------------------------------------------------------------
+// 登录失败限流（按 IP + 邮箱）
+//
+// 说明：Pages Functions 每个 isolate 内存独立，这里的计数是「尽力而为」的
+// 第一道闸门，用于挡住脚本化的密码爆破；真正权威的限流仍在 Supabase Auth。
+// 需要跨 isolate 的严格限流时，可换 Cloudflare KV / Durable Object 实现。
+// ------------------------------------------------------------------
+const LOGIN_WINDOW_MS = 5 * 60 * 1000;
+const LOGIN_MAX_FAILURES = 8;
+const loginFailures = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimitKey(request: Request, email: string): string {
+  const ip =
+    request.headers.get('CF-Connecting-IP') ??
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    'unknown';
+  return `${ip}|${email}`;
+}
+
+/** 返回还需等待的秒数；0 表示未被限制 */
+function checkLoginRateLimit(key: string): number {
+  const record = loginFailures.get(key);
+  if (!record) return 0;
+  if (Date.now() > record.resetAt) {
+    loginFailures.delete(key);
+    return 0;
+  }
+  if (record.count < LOGIN_MAX_FAILURES) return 0;
+  return Math.ceil((record.resetAt - Date.now()) / 1000);
+}
+
+function recordLoginFailure(key: string): void {
+  const now = Date.now();
+  const record = loginFailures.get(key);
+  if (!record || now > record.resetAt) {
+    loginFailures.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS });
+    return;
+  }
+  record.count += 1;
+}
+
+function clearLoginFailures(key: string): void {
+  loginFailures.delete(key);
+}
+
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const body = await readJson<LoginBody>(request);
   const email = requireString(body.email, '邮箱', { max: 100 }).toLowerCase();
   const password = requireString(body.password, '密码', { max: 72 });
 
-  // 先校验人机验证（失败即拒绝，不消耗 Supabase 登录配额）
+  // 限流优先于一切：被锁定时不再消耗人机验证与 Supabase 配额
+  const key = rateLimitKey(request, email);
+  const retryAfter = checkLoginRateLimit(key);
+  if (retryAfter > 0) {
+    throw new HttpError(429, `尝试过于频繁，请在 ${retryAfter} 秒后重试`);
+  }
+
+  // 校验人机验证（失败即拒绝，不消耗 Supabase 登录配额）
   await verifyTurnstile(env, request, body.cf_turnstile_token ?? null);
 
   const supabase = createAnonClient(env);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.session) {
+    recordLoginFailure(key);
     throw new HttpError(401, '邮箱或密码错误');
   }
+
+  clearLoginFailures(key);
 
   return jsonResponse({
     access_token: data.session.access_token,

@@ -55,6 +55,8 @@ export function FulfillmentPanel() {
   const [filter, setFilter] = useState<StatusFilter>('pending');
   const [rows, setRows] = useState<StaffRedemption[]>([]);
   const [loading, setLoading] = useState(true);
+  /** 是否还有下一页（后端分页，避免静默截断） */
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -62,9 +64,12 @@ export function FulfillmentPanel() {
     try {
       setError(null);
       setLoading(true);
-      setRows(
-        await redemptionsApi.listForStaff(currentFilter === 'all' ? undefined : currentFilter),
+      const page = await redemptionsApi.listForStaff(
+        currentFilter === 'all' ? undefined : currentFilter,
+        { limit: 100 },
       );
+      setRows(page.items);
+      setHasMore(page.has_more);
     } catch (err) {
       setError(getErrorMessage(err, '获取兑换记录失败'));
     } finally {
@@ -201,14 +206,21 @@ export function FulfillmentPanel() {
       {error ? (
         <ErrorNotice message={error} onRetry={() => void refresh(filter)} />
       ) : (
-        <DataTable
-          columns={columns}
-          rows={rows}
-          rowKey={(record) => record.id}
-          loading={loading}
-          emptyText={filter === 'pending' ? '没有待发放的兑换记录' : '暂无兑换记录'}
-          emptyIcon={PackageCheck}
-        />
+        <>
+          <DataTable
+            columns={columns}
+            rows={rows}
+            rowKey={(record) => record.id}
+            loading={loading}
+            emptyText={filter === 'pending' ? '没有待发放的兑换记录' : '暂无兑换记录'}
+            emptyIcon={PackageCheck}
+          />
+          {hasMore && (
+            <p className="text-xs text-ink-400">
+              仅显示最近 100 条记录，请用上方筛选缩小范围，避免遗漏。
+            </p>
+          )}
+        </>
       )}
     </div>
   );

@@ -6,7 +6,7 @@
  * POST 调用数据库函数 redeem_item 原子完成：
  * 锁定商品 → 校验上架/库存/积分 → 扣积分扣库存 → 写兑换记录（快照）→ 写积分明细
  */
-import { HttpError, jsonResponse, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
+import { HttpError, jsonResponse, parsePagination, pagedResponse, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
 import { requireAuth, requireStaff } from '../../lib/auth';
 import { isRegionAllowed } from '../../lib/rbac';
 import { createUserClient } from '../../lib/supabase';
@@ -21,7 +21,9 @@ interface RedeemBody {
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireStaff(env, request);
 
-  const status = new URL(request.url).searchParams.get('status');
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status');
+  const { limit, offset } = parsePagination(url);
   let query = createUserClient(env, ctx.token)
     .from('redemptions')
     .select(
@@ -30,7 +32,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       'id, student_id, item_id, item_name, cost, quantity, status, fulfilled_at, fulfilled_by, download_url, created_at, students!student_id(name, student_no, region_id)',
     )
     .order('created_at', { ascending: false })
-    .limit(200);
+    .order('id', { ascending: false })
+    // 多取一条用于判断是否还有下一页；不再用固定 limit 静默截断
+    .range(offset, offset + limit);
 
   if (status === 'pending' || status === 'fulfilled') {
     query = query.eq('status', status);
@@ -47,10 +51,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   })[];
 
   // 区域隔离：非超管只看得到自己授权区域（含子孙）内学生的兑换记录
-  if (ctx.regionScope.isSuperAdmin) {
-    return jsonResponse(rows);
-  }
-  return jsonResponse(rows.filter((row) => isRegionAllowed(ctx.regionScope, row.students?.region_id)));
+  const visible = ctx.regionScope.isSuperAdmin
+    ? rows
+    : rows.filter((row) => isRegionAllowed(ctx.regionScope, row.students?.region_id));
+
+  return pagedResponse(visible.slice(0, limit), visible.length > limit);
 };
 
 // 学生：兑换商品（数量由前端选择，后端二次校验）

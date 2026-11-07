@@ -14,6 +14,7 @@ import type {
   Item,
   LedgerEntry,
   LeaderboardEntry,
+  Page,
   RedeemResponse,
   Redemption,
   Region,
@@ -24,6 +25,24 @@ import type {
   UpdateProfilePayload,
   UserRole,
 } from '../types';
+
+
+/** 分页参数（默认 50 条，后端上限 100） */
+export interface PageQuery {
+  limit?: number;
+  offset?: number;
+  status?: FulfillmentStatus;
+}
+
+/** 拼查询串；不传则使用后端默认值 */
+export function buildPageQuery(page: PageQuery = {}): string {
+  const params = new URLSearchParams();
+  if (page.limit !== undefined) params.set('limit', String(page.limit));
+  if (page.offset !== undefined) params.set('offset', String(page.offset));
+  if (page.status) params.set('status', page.status);
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
 
 /** 登录接口返回的会话数据 */
 export interface LoginResponse {
@@ -142,11 +161,12 @@ export const redemptionsApi = {
   /** 兑换商品（支持数量选择） */
   redeem: (itemId: string, quantity = 1) =>
     api.post<RedeemResponse>('/redemptions', { item_id: itemId, quantity }),
-  /** 查询某学生的兑换记录（本人或教职工） */
-  listByStudent: (studentId: string) => api.get<Redemption[]>(`/redemptions/${studentId}`),
+  /** 查询某学生的兑换记录（本人或教职工，分页） */
+  listByStudent: (studentId: string, page: PageQuery = {}) =>
+    api.get<Page<Redemption>>(`/redemptions/${studentId}${buildPageQuery(page)}`),
   /** 教职工：全部兑换记录（教师工作台发放队列，可按状态筛选） */
-  listForStaff: (status?: FulfillmentStatus) =>
-    api.get<StaffRedemption[]>(`/redemptions${status ? `?status=${status}` : ''}`),
+  listForStaff: (status?: FulfillmentStatus, page: PageQuery = {}) =>
+    api.get<Page<StaffRedemption>>(`/redemptions${buildPageQuery({ ...page, status })}`),
   /** 教职工：更新发放状态（标记已发放 / 撤回为待发放） */
   updateStatus: (id: string, status: FulfillmentStatus) =>
     api.post<{ id: string; status: FulfillmentStatus }>(`/redemptions/${id}/status`, { status }),
@@ -154,8 +174,9 @@ export const redemptionsApi = {
 
 /** 积分明细 */
 export const ledgerApi = {
-  /** 查询某学生的积分流水 */
-  listByStudent: (studentId: string) => api.get<LedgerEntry[]>(`/ledger/${studentId}`),
+  /** 查询某学生的积分流水（分页） */
+  listByStudent: (studentId: string, page: PageQuery = {}) =>
+    api.get<Page<LedgerEntry>>(`/ledger/${studentId}${buildPageQuery(page)}`),
 };
 
 /** 管理员统计 */

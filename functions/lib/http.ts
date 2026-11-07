@@ -43,6 +43,32 @@ export async function readJson<T>(request: Request): Promise<T> {
   }
 }
 
+/** 分页默认值与上限（列表接口统一口径，避免静默截断） */
+export const DEFAULT_PAGE_SIZE = 50;
+export const MAX_PAGE_SIZE = 100;
+
+/**
+ * 解析分页参数：?limit=&offset=
+ * 非法值一律回落到默认值，limit 最大 100，offset 不允许为负。
+ */
+export function parsePagination(
+  url: URL,
+  defaultLimit = DEFAULT_PAGE_SIZE,
+): { limit: number; offset: number } {
+  const rawLimit = Number(url.searchParams.get('limit') ?? defaultLimit);
+  const rawOffset = Number(url.searchParams.get('offset') ?? 0);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(Math.trunc(rawLimit), 1), MAX_PAGE_SIZE)
+    : defaultLimit;
+  const offset = Number.isFinite(rawOffset) ? Math.max(Math.trunc(rawOffset), 0) : 0;
+  return { limit, offset };
+}
+
+/** 统一的分页响应体 */
+export function pagedResponse<T>(items: T[], hasMore: boolean): Response {
+  return jsonResponse({ items, has_more: hasMore });
+}
+
 /** 必填字符串校验 */
 export function requireString(
   value: unknown,

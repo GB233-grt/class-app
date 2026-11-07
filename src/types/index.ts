@@ -205,3 +205,9 @@ export interface AwardResponse {
 export interface ApiErrorBody {
   error: string;
 }
+
+/** 分页响应：items + 是否还有下一页 */
+export interface Page<T> {
+  items: T[];
+  has_more: boolean;
+}
