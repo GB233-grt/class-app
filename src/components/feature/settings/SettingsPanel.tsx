@@ -27,6 +27,7 @@ import {
 import { Button } from '../../common/Button';
 import { Card } from '../../common/Card';
 import { Input } from '../../common/Input';
+import { PasswordRules } from '../../common/PasswordRules';
 import { getErrorMessage } from '../../../lib/utils';
 import type { Student } from '../../../types';
 
@@ -191,6 +192,7 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
               error={password.formState.errors.new_password?.message}
               {...password.register('new_password')}
             />
+            <PasswordRules value={password.watch('new_password') ?? ''} />
             <Input
               label="重复新密码"
               type="password"
