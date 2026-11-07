@@ -22,9 +22,10 @@ export default function App() {
   }
 
   // 按角色进入对应仪表盘
-  return profile.role === 'admin'
-    ? <AdminDashboard />
-    : profile.role === 'teacher'
-      ? <TeacherDashboard />
-      : <StudentDashboard />;
+  // 注意：super_admin 也属于管理端，必须显式判断，否则会掉进学生端兜底分支
+  const isAdmin = profile.role === 'admin' || profile.role === 'super_admin';
+
+  if (isAdmin) return <AdminDashboard />;
+  if (profile.role === 'teacher') return <TeacherDashboard />;
+  return <StudentDashboard />;
 }

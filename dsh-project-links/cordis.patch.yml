@@ -1,0 +1,6 @@
+# One Host row: it owns the link store and the online checks.
+# The browser half is declared by package.json `dsh.client`.
+- insert:
+    - id: project-links
+      name: '@local/dsh-project-links'
+      config: {}
