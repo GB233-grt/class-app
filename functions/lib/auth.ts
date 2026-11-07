@@ -74,7 +74,7 @@ export async function requireAuth(env: Env, request: Request): Promise<AuthConte
     isAdmin,
     isTeacher,
     isStaff,
-    regionScope: isStaff ? await loadRegionScope(env, typedProfile) : FULL_SCOPE,
+    regionScope: isStaff ? await loadRegionScope(env, typedProfile, token) : FULL_SCOPE,
   };
 }
 

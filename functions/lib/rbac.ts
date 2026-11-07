@@ -5,13 +5,11 @@
  *   角色 → super_admin 不限区域；admin/teacher 只能看被授权的区域及其子孙区域
  *   授权 → region_members(user_id, region_id)
  *
- * 说明：判定全部在服务端完成，前端只根据 /api/auth/me 返回的 region_scope 控制显隐。
+ * 说明：判定全部在服务端完成，前端只根据接口返回控制显隐。
  */
 import { HttpError } from './http';
-import { createAdminClient } from './supabase';
+import { createAdminClient, createUserClient } from './supabase';
 import type { Env, Student } from './types';
-
-export type StaffRole = 'teacher' | 'admin' | 'super_admin';
 
 /** 当前用户的区域范围 */
 export interface RegionScope {
@@ -29,14 +27,41 @@ export const FULL_SCOPE: RegionScope = {
   regionSet: null,
 };
 
-/** 读取某用户的授权区域，并展开为「授权区域 + 全部子孙区域」 */
-export async function loadRegionScope(env: Env, profile: Student): Promise<RegionScope> {
+/** 把 id 数组包装成范围对象 */
+function toScope(ids: string[]): RegionScope {
+  return { isSuperAdmin: false, regionIds: ids, regionSet: new Set(ids) };
+}
+
+/**
+ * 读取某用户的授权区域，并展开为「授权区域 + 全部子孙区域」。
+ *
+ * 优先走数据库递归 CTE（current_user_region_ids），只用用户自己的令牌调用，
+ * 这样函数里的 auth.uid() 才有值；函数不可用时回退到内存展开（兼容旧库）。
+ */
+export async function loadRegionScope(
+  env: Env,
+  profile: Student,
+  token?: string,
+): Promise<RegionScope> {
   if (profile.role === 'super_admin') return FULL_SCOPE;
-  // 学生不需要区域范围
-  if (profile.role === 'student') {
-    return { isSuperAdmin: false, regionIds: [], regionSet: new Set() };
+  if (profile.role === 'student') return toScope([]);
+
+  // 1. 数据库侧展开（推荐路径）
+  if (token) {
+    try {
+      const { data, error } = await createUserClient(env, token).rpc('current_user_region_ids');
+      if (!error && Array.isArray(data)) {
+        const ids = (data as (string | { current_user_region_ids?: string })[])
+          .map((row) => (typeof row === 'string' ? row : row?.current_user_region_ids))
+          .filter((id): id is string => typeof id === 'string');
+        return toScope(ids);
+      }
+    } catch {
+      // 忽略，继续走回退逻辑
+    }
   }
 
+  // 2. 回退：拉取区域树 + 授权记录，在内存里 BFS 展开
   const admin = createAdminClient(env);
   const [{ data: regions, error: regionError }, { data: members, error: memberError }] =
     await Promise.all([
@@ -56,7 +81,6 @@ export async function loadRegionScope(env: Env, profile: Student): Promise<Regio
     childrenOf.set(row.parent_id, list);
   }
 
-  // BFS 展开子孙区域
   const allowed = new Set<string>();
   const queue = ((members ?? []) as { region_id: string }[]).map((m) => m.region_id);
   while (queue.length > 0) {
@@ -68,11 +92,7 @@ export async function loadRegionScope(env: Env, profile: Student): Promise<Regio
     }
   }
 
-  return {
-    isSuperAdmin: false,
-    regionIds: [...allowed],
-    regionSet: allowed,
-  };
+  return toScope([...allowed]);
 }
 
 /** 该范围是否覆盖指定区域；regionId 为空时只有超管能访问 */

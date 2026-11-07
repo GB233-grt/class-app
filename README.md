@@ -364,21 +364,21 @@ flowchart LR
 
 | 角色 | 能做什么 |
 | --- | --- |
-| super_admin | 全部区域；管理区域结构、区域授权、用户角色 |
-| dmin | 仅被授权区域（含所有子孙区域）内的账号与数据 |
-| 	eacher | 仅被授权区域（含子孙）内的加分 / 发放 |
-| student | 只能看自己的数据 |
+| `super_admin` | 全部区域；管理区域结构、区域授权、用户角色 |
+| `admin` | 仅被授权区域（含所有子孙区域）内的账号与数据 |
+| `teacher` | 仅被授权区域（含子孙）内的加分 / 发放 |
+| `student` | 只能看自己的数据 |
 
 - **区域**：`regions` 用 `parent_id` 自关联（校区 → 年级 → 班级），可任意分层
 - **授权**：`region_members(user_id, region_id)`；授权父级自动覆盖全部子级
 - **学生归属**：`students.region_id`；未分区的账号只有超级管理员可见
 - **拦截点**：`functions/lib/rbac.ts` + 各接口的 `assertStudentAllowed` / `regionFilter`，越权返回 403
 
-``sql
+```sql
 -- 升级已有库后：给自己所在的账号提权（脚本会自动把最早的管理员设为超管）
 select name, role from students order by created_at;
 update students set role = 'super_admin' where email = 'admin@school.edu';
-``
+```
 
 ### 安全模型
 
