@@ -23,3 +23,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# 本地 DSH 插件工程，不属于本站
+dsh-project-links/
