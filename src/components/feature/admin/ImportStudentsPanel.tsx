@@ -2,7 +2,7 @@
  * Excel 批量导入面板（内容区，外层 Card 由 CreateStudentPanel 提供）：
  * 选择文件 → 校验预览（每行状态与原因）→ 逐个创建 → 结果反馈
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   Download,
@@ -12,11 +12,12 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react';
-import { studentsApi } from '../../../api';
+import { adminApi, studentsApi } from '../../../api';
 import { useStudents } from '../../../hooks/useStudents';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../common/Button';
 import { DataTable, type DataTableColumn } from '../../common/DataTable';
+import { Select } from '../../common/Select';
 import { TemplatePreview } from '../../common/TemplatePreview';
 import { cn, getErrorMessage } from '../../../lib/utils';
 import { parseStudentWorkbook, type ImportRow, type ImportStatus } from '../../../lib/excelImport';
@@ -60,6 +61,18 @@ export function ImportStudentsPanel() {
   const [importing, setImporting] = useState(false);
   const [finished, setFinished] = useState(false);
   const [showTemplate, setShowTemplate] = useState(false);
+  // 批量导入统一归属到某个区域（区域管理员只能选自己授权范围内的）
+  const [regionId, setRegionId] = useState('');
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    adminApi.regions
+      .list()
+      .then((list) => {
+        setRegions(list);
+        if (list.length === 1) setRegionId(list[0].id);
+      })
+      .catch(() => setRegions([]));
+  }, []);
 
   const readyCount = rows?.filter((row) => row.status === 'ready').length ?? 0;
   const errorCount = rows?.filter((row) => row.status === 'error').length ?? 0;
@@ -109,6 +122,7 @@ export function ImportStudentsPanel() {
           password: row.password,
           points: Number(row.points || 0),
           role: row.role,
+          region_id: regionId || undefined,
         });
         ok += 1;
         setRows((prev) =>
@@ -236,6 +250,16 @@ export function ImportStudentsPanel() {
       {/* 预览与导入 */}
       {rows && (
         <>
+          <div className="mb-3 w-full sm:w-64">
+            <Select label="导入到区域" value={regionId} onChange={(event) => setRegionId(event.target.value)}>
+              <option value="">未指定（仅超级管理员可见）</option>
+              {regions.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {region.name}
+                </option>
+              ))}
+            </Select>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-600">
               共 <b>{rows.length}</b> 行 · 可导入 <b className="text-brand-600">{readyCount}</b> 行

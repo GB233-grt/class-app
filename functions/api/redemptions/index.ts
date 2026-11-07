@@ -8,6 +8,7 @@
  */
 import { HttpError, jsonResponse, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
 import { requireAuth, requireStaff } from '../../lib/auth';
+import { isRegionAllowed } from '../../lib/rbac';
 import { createUserClient } from '../../lib/supabase';
 import type { Env, StaffRedemption } from '../../lib/types';
 
@@ -26,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     .select(
       // redemptions 有两条指向 students 的外键（student_id / fulfilled_by），
       // 必须用 !student_id 显式消歧，否则 PostgREST 报"关系不明确"
-      'id, student_id, item_id, item_name, cost, quantity, status, fulfilled_at, fulfilled_by, download_url, created_at, students!student_id(name, student_no)',
+      'id, student_id, item_id, item_name, cost, quantity, status, fulfilled_at, fulfilled_by, download_url, created_at, students!student_id(name, student_no, region_id)',
     )
     .order('created_at', { ascending: false })
     .limit(200);
@@ -41,7 +42,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     throw new HttpError(500, `获取兑换记录失败：${error.message}`);
   }
   // supabase-js 将内嵌关联推断为数组，运行时 PostgREST 对多对一关联返回对象
-  return jsonResponse((data ?? []) as unknown as StaffRedemption[]);
+  const rows = (data ?? []) as unknown as (StaffRedemption & {
+    students: { name: string; student_no: string | null; region_id: string | null } | null;
+  })[];
+
+  // 区域隔离：非超管只看得到自己授权区域（含子孙）内学生的兑换记录
+  if (ctx.regionScope.isSuperAdmin) {
+    return jsonResponse(rows);
+  }
+  return jsonResponse(rows.filter((row) => isRegionAllowed(ctx.regionScope, row.students?.region_id)));
 };
 
 // 学生：兑换商品（数量由前端选择，后端二次校验）

@@ -3,6 +3,7 @@
  */
 import { HttpError, jsonResponse } from '../../lib/http';
 import { requireAuth } from '../../lib/auth';
+import { assertStudentAllowed } from '../../lib/rbac';
 import { createUserClient } from '../../lib/supabase';
 import type { Env } from '../../lib/types';
 
@@ -12,6 +13,10 @@ export const onRequestGet: PagesFunction<Env, 'studentId'> = async ({ params, re
 
   if (!ctx.isStaff && ctx.userId !== studentId) {
     throw new HttpError(403, '只能查看自己的兑换记录');
+  }
+  // 教职工查看他人记录时，必须落在自己的授权区域内
+  if (ctx.isStaff && ctx.userId !== studentId && !ctx.isSuperAdmin) {
+    await assertStudentAllowed(env, ctx.regionScope, studentId);
   }
 
   const { data, error } = await createUserClient(env, ctx.token)

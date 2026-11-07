@@ -1,8 +1,9 @@
 /**
  * 认证与权限中间件
- * 从请求头解析 JWT → 校验用户 → 加载 students 表资料 → 角色校验
+ * 从请求头解析 JWT → 校验用户 → 加载 students 表资料 → 角色校验 + 区域范围
  */
 import { HttpError } from './http';
+import { loadRegionScope, type RegionScope, FULL_SCOPE } from './rbac';
 import { createUserClient } from './supabase';
 import type { Env, Student } from './types';
 
@@ -14,12 +15,16 @@ export interface AuthContext {
   userId: string;
   /** 学生/教师/管理员资料 */
   profile: Student;
-  /** 是否管理员 */
+  /** 超级管理员 */
+  isSuperAdmin: boolean;
+  /** 是否管理员（区域管理员或超级管理员） */
   isAdmin: boolean;
   /** 是否教师 */
   isTeacher: boolean;
-  /** 是否教职工（教师或管理员） */
+  /** 是否教职工（教师 / 管理员 / 超级管理员） */
   isStaff: boolean;
+  /** 区域范围：超管不限，其余按授权区域（含子孙） */
+  regionScope: RegionScope;
 }
 
 /** 从请求头提取 Bearer Token */
@@ -32,7 +37,7 @@ function extractToken(request: Request): string {
   return token;
 }
 
-/** 登录校验：任何已登录用户（学生或管理员）可通过 */
+/** 登录校验：任何已登录用户可通过 */
 export async function requireAuth(env: Env, request: Request): Promise<AuthContext> {
   const token = extractToken(request);
   const client = createUserClient(env, token);
@@ -56,23 +61,37 @@ export async function requireAuth(env: Env, request: Request): Promise<AuthConte
   }
 
   const typedProfile = profile as Student;
-  const isAdmin = typedProfile.role === 'admin';
+  const isSuperAdmin = typedProfile.role === 'super_admin';
+  const isAdmin = typedProfile.role === 'admin' || isSuperAdmin;
   const isTeacher = typedProfile.role === 'teacher';
+  const isStaff = isAdmin || isTeacher;
+
   return {
     token,
     userId: userData.user.id,
     profile: typedProfile,
+    isSuperAdmin,
     isAdmin,
     isTeacher,
-    isStaff: isAdmin || isTeacher,
+    isStaff,
+    regionScope: isStaff ? await loadRegionScope(env, typedProfile) : FULL_SCOPE,
   };
 }
 
-/** 管理员校验：仅管理员角色可通过 */
+/** 管理员校验：区域管理员或超级管理员可通过 */
 export async function requireAdmin(env: Env, request: Request): Promise<AuthContext> {
   const ctx = await requireAuth(env, request);
   if (!ctx.isAdmin) {
     throw new HttpError(403, '没有权限执行该操作');
+  }
+  return ctx;
+}
+
+/** 超级管理员校验：用户 / 角色 / 区域 / 权限配置专用 */
+export async function requireSuperAdmin(env: Env, request: Request): Promise<AuthContext> {
+  const ctx = await requireAuth(env, request);
+  if (!ctx.isSuperAdmin) {
+    throw new HttpError(403, '只有超级管理员可以执行该操作');
   }
   return ctx;
 }

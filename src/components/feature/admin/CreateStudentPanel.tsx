@@ -1,11 +1,11 @@
 /**
  * 新建用户面板：单个创建 / Excel 批量导入（同步创建 Supabase Auth 登录账号）
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileSpreadsheet, UserPlus } from 'lucide-react';
-import { studentsApi } from '../../../api';
+import { adminApi, studentsApi } from '../../../api';
 import { useToast } from '../../../hooks/useToast';
 import { Button } from '../../common/Button';
 import { Card } from '../../common/Card';
@@ -24,6 +24,7 @@ const EMPTY_FORM = {
   password: '',
   points: '',
   role: 'student',
+  region_id: '',
 } as const;
 
 export function CreateStudentPanel() {
@@ -34,6 +35,7 @@ export function CreateStudentPanel() {
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<StudentFormValues>({
@@ -42,6 +44,19 @@ export function CreateStudentPanel() {
   });
 
   const role = watch('role');
+
+  // 可分配的区域：超管拿到全部，区域管理员只拿到自己授权范围
+  const [regions, setRegions] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    adminApi.regions
+      .list()
+      .then((list) => {
+        setRegions(list);
+        // 只有一个区域时默认选中，减少一次点击
+        if (list.length === 1) setValue('region_id', list[0].id);
+      })
+      .catch(() => setRegions([]));
+  }, [setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -53,6 +68,7 @@ export function CreateStudentPanel() {
         // 初始积分留空视为 0；教师账号无积分概念，强制为 0
         points: values.role === 'teacher' ? 0 : values.points === '' ? 0 : Number(values.points),
         role: values.role,
+        region_id: values.region_id || undefined,
       });
       showToast(
         'success',
@@ -152,6 +168,23 @@ export function CreateStudentPanel() {
                 {...register('points')}
               />
             </div>
+            <Select
+              label="所属区域"
+              error={errors.region_id?.message}
+              {...register('region_id')}
+            >
+              <option value="">未指定（仅超级管理员可见）</option>
+              {regions.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {region.name}
+                </option>
+              ))}
+            </Select>
+            {regions.length === 0 && (
+              <p className="text-xs text-amber-600">
+                还没有区域，请先让超级管理员在「区域与权限」中创建后再分配。
+              </p>
+            )}
             <Button type="submit" loading={isSubmitting} className="w-full sm:w-auto">
               创建{role === 'teacher' ? '教师' : '学生'}
             </Button>

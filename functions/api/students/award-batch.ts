@@ -10,6 +10,7 @@
  */
 import { HttpError, jsonResponse, readJson, requireString, translateDbError } from '../../lib/http';
 import { requireStaff } from '../../lib/auth';
+import { isRegionAllowed } from '../../lib/rbac';
 import { createUserClient } from '../../lib/supabase';
 import { compileJudgeFormula, JudgeFormulaError } from '../../lib/judgeFormula';
 import type { Env, Student } from '../../lib/types';
@@ -78,7 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const ids = [...new Set(rows.map((row) => row.student_id))];
   const { data: studentRows, error: listError } = await client
     .from('students')
-    .select('id, name, role, points')
+    .select('id, name, role, points, region_id')
     .in('id', ids);
   if (listError) {
     throw new HttpError(500, '获取学生列表失败');
@@ -99,6 +100,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     }
     if (student.role !== 'student') {
       errors.push({ row: line, message: `第 ${line} 行：教师/管理员不能被加分` });
+      return;
+    }
+    // 区域隔离：只能给授权区域（含子孙）内的学生加分
+    if (!isRegionAllowed(ctx.regionScope, student.region_id)) {
+      errors.push({
+        row: line,
+        message: `第 ${line} 行：${student.name} 不在你的管理区域内`,
+      });
       return;
     }
     let result: number;

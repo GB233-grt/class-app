@@ -2,20 +2,21 @@
  * 管理员仪表盘：侧边栏导航（用户管理 / 商品与数据 / 系统）+ 统计概览 + 面板
  */
 import { useMemo, useState } from 'react';
-import { Boxes, Coins, Package, SlidersHorizontal, UserCog, UserPlus, Users } from 'lucide-react';
+import { Boxes, Coins, Package, ShieldCheck, SlidersHorizontal, UserCog, UserPlus, Users } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
 import { ItemsPanel } from '../components/feature/admin/ItemsPanel';
 import { StudentsPanel } from '../components/feature/admin/StudentsPanel';
 import { CreateStudentPanel } from '../components/feature/admin/CreateStudentPanel';
 import { SystemSettingsPanel } from '../components/feature/admin/SystemSettingsPanel';
+import { RegionsPanel } from '../components/feature/admin/RegionsPanel';
 import { SettingsPanel } from '../components/feature/settings/SettingsPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useStats } from '../hooks/useStats';
 import { useStudents } from '../hooks/useStudents';
 import { formatPoints } from '../lib/utils';
 
-type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'account';
+type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'account' | 'regions';
 
 const GROUPS: SidebarNavGroup[] = [
   {
@@ -44,6 +45,18 @@ export default function AdminDashboard() {
   const { stats, loading: statsLoading } = useStats();
   const { students } = useStudents();
 
+  // 区域与权限仅超级管理员可见（真正的拦截在后端，这里只控制菜单显隐）
+  const groups = useMemo<SidebarNavGroup[]>(() => {
+    if (profile?.role !== 'super_admin') return GROUPS;
+    return [
+      {
+        title: '权限',
+        items: [{ key: 'regions', label: '区域与权限', icon: ShieldCheck }],
+      },
+      ...GROUPS,
+    ];
+  }, [profile?.role]);
+
   // 侧边栏「最近新增学生」：按创建时间倒序取前 4
   const recentStudents = useMemo(
     () => [...students].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 4),
@@ -55,7 +68,7 @@ export default function AdminDashboard() {
 
   return (
     <SidebarLayout
-      groups={GROUPS}
+      groups={groups}
       activeKey={activeTab}
       onNavigate={(key) => setActiveTab(key as AdminTabKey)}
       feature={
@@ -118,6 +131,7 @@ export default function AdminDashboard() {
         {activeTab === 'students' && <StudentsPanel />}
         {activeTab === 'create' && <CreateStudentPanel />}
         {activeTab === 'system' && <SystemSettingsPanel />}
+        {activeTab === 'regions' && profile?.role === 'super_admin' && <RegionsPanel />}
         {activeTab === 'account' && profile && (
           <SettingsPanel profile={profile} onUpdated={() => void refreshProfile()} />
         )}

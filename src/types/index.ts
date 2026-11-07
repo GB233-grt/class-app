@@ -4,7 +4,7 @@
  */
 
 /** 用户角色 */
-export type UserRole = 'student' | 'teacher' | 'admin';
+export type UserRole = 'student' | 'teacher' | 'admin' | 'super_admin';
 
 /** 学生/教师/管理员资料（students 表） */
 export interface Student {
@@ -14,7 +14,27 @@ export interface Student {
   email: string;
   role: UserRole;
   points: number;
+  /** 所属区域（学生用）；为空表示未分区，仅超级管理员可见 */
+  region_id: string | null;
   created_at: string;
+}
+
+/** 区域（校区 / 年级 / 班级，树形） */
+export interface Region {
+  id: string;
+  name: string;
+  type: 'campus' | 'grade' | 'class' | 'other';
+  parent_id: string | null;
+  created_at: string;
+}
+
+/** 区域授权（用户 ↔ 区域） */
+export interface RegionMember {
+  user_id: string;
+  region_id: string;
+  created_at: string;
+  students: { name: string; email: string; role: UserRole } | null;
+  regions: { name: string; type: string } | null;
 }
 
 /** 修改密码请求参数 */
@@ -131,6 +151,8 @@ export interface CreateStudentPayload {
   password: string;
   points: number;
   role?: 'student' | 'teacher';
+  /** 所属区域（超管创建时必须指定；区域管理员只能填自己授权范围内的区域） */
+  region_id?: string;
 }
 
 /** 积分增减请求体 */

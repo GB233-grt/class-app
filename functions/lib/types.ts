@@ -15,14 +15,28 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string;
 }
 
-/** 学生表行结构（角色：学生 / 教师 / 管理员） */
+/** 角色：学生 / 教师 / 区域管理员 / 超级管理员 */
+export type UserRole = 'student' | 'teacher' | 'admin' | 'super_admin';
+
+/** 学生表行结构 */
 export interface Student {
   id: string;
   name: string;
   student_no: string | null;
   email: string;
-  role: 'student' | 'teacher' | 'admin';
+  role: UserRole;
   points: number;
+  /** 所属区域（学生用）；为空表示未分区，仅超级管理员可见 */
+  region_id: string | null;
+  created_at: string;
+}
+
+/** 区域（校区 / 年级 / 班级，树形） */
+export interface Region {
+  id: string;
+  name: string;
+  type: 'campus' | 'grade' | 'class' | 'other';
+  parent_id: string | null;
   created_at: string;
 }
 

@@ -127,6 +127,8 @@ export const studentFormSchema = z.object({
     .string()
     .refine((v) => v === '' || NON_NEGATIVE_INT.test(v), '初始积分必须是非负整数'),
   role: z.enum(['student', 'teacher']).default('student'),
+  /** 所属区域（可为空，由后端按授权范围兜底） */
+  region_id: z.string().optional().default(''),
 });
 
 export type StudentFormValues = z.infer<typeof studentFormSchema>;

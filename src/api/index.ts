@@ -16,10 +16,13 @@ import type {
   LeaderboardEntry,
   RedeemResponse,
   Redemption,
+  Region,
+  RegionMember,
   StaffRedemption,
   Stats,
   Student,
   UpdateProfilePayload,
+  UserRole,
 } from '../types';
 
 /** 登录接口返回的会话数据 */
@@ -110,6 +113,28 @@ export const adminApi = {
     update: (key: string, value: SystemSettingRecord['value']) =>
       api.post<SystemSettingRecord>('/admin/system-settings', { key, value }),
   },
+
+  /** 区域管理：GET 对教职工开放（按授权范围裁剪），写操作仅超级管理员 */
+  regions: {
+    list: () => api.get<Region[]>('/admin/regions'),
+    create: (payload: { name: string; type: Region['type']; parent_id?: string | null }) =>
+      api.post<Region>('/admin/regions', payload),
+    update: (id: string, payload: { name?: string; type?: Region['type']; parent_id?: string | null }) =>
+      api.put<Region>(`/admin/regions/${id}`, payload),
+    remove: (id: string) => api.delete<{ message: string }>(`/admin/regions/${id}`),
+  },
+
+  /** 区域授权（仅超级管理员） */
+  members: {
+    list: () => api.get<RegionMember[]>('/admin/members'),
+    assign: (userId: string, regionId: string) =>
+      api.post('/admin/members', { user_id: userId, region_id: regionId }),
+    revoke: (userId: string, regionId: string) =>
+      api.delete(`/admin/members?user_id=${userId}&region_id=${regionId}`),
+  },
+
+  /** 修改用户角色（仅超级管理员） */
+  updateRole: (userId: string, role: UserRole) => api.put<Student>(`/admin/users/${userId}/role`, { role }),
 };
 
 /** 物品兑换 */

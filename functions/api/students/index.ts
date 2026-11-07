@@ -6,19 +6,30 @@
  */
 import { HttpError, jsonResponse, optionalString, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
 import { requireAdmin, requireStaff } from '../../lib/auth';
+import { assertRegionAllowed } from '../../lib/rbac';
 import { createAdminClient, createUserClient } from '../../lib/supabase';
 import type { Env, Student } from '../../lib/types';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // 教职工：获取用户列表（教师工作台加分时需要学生名单）
+// 区域隔离：非超管只能看到自己授权区域（含子孙）内的账号
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireStaff(env, request);
 
-  const { data, error } = await createUserClient(env, ctx.token)
+  let query = createUserClient(env, ctx.token)
     .from('students')
     .select('*')
     .order('created_at', { ascending: true });
+
+  if (!ctx.regionScope.isSuperAdmin) {
+    const allowed = ctx.regionScope.regionIds ?? [];
+    // 没有任何授权区域：直接返回空列表，避免误查全量
+    if (allowed.length === 0) return jsonResponse([] as Student[]);
+    query = query.in('region_id', allowed);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new HttpError(500, '获取学生列表失败');
@@ -28,7 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
 // 管理员创建学生（含登录账号）
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  await requireAdmin(env, request);
+  const ctx = await requireAdmin(env, request);
 
   const body = await readJson<Record<string, unknown>>(request);
   const name = requireString(body.name, '学生姓名', { max: 20 });
@@ -45,6 +56,21 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const role: 'student' | 'teacher' = body.role === 'teacher' ? 'teacher' : 'student';
   const points =
     role === 'teacher' ? 0 : requireInt(body.points ?? 0, '初始积分', { min: 0, max: 1000000 });
+
+  // 区域：必须落在自己的授权范围内；只授权了一个区域时可省略
+  const rawRegionId = optionalString(body.region_id, 40);
+  let regionId = rawRegionId;
+  if (!regionId) {
+    const allowed = ctx.regionScope.regionIds ?? [];
+    if (ctx.regionScope.isSuperAdmin) {
+      throw new HttpError(400, '请选择所属区域');
+    }
+    if (allowed.length !== 1) {
+      throw new HttpError(400, '请选择所属区域');
+    }
+    regionId = allowed[0];
+  }
+  assertRegionAllowed(ctx.regionScope, regionId);
 
   const adminClient = createAdminClient(env);
 
@@ -67,7 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   // 第二步：写入学生业务表（ID 与 Auth 用户保持一致，RLS 依赖该对应关系）
   const { data: profile, error: insertError } = await adminClient
     .from('students')
-    .insert({ id: authData.user.id, name, student_no: studentNo, email, role, points })
+    .insert({ id: authData.user.id, name, student_no: studentNo, email, role, points, region_id: regionId })
     .select('*')
     .single();
 

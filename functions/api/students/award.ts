@@ -4,6 +4,7 @@
  */
 import { HttpError, jsonResponse, readJson, requireInt, requireString, translateDbError } from '../../lib/http';
 import { requireStaff } from '../../lib/auth';
+import { assertStudentAllowed } from '../../lib/rbac';
 import { createUserClient } from '../../lib/supabase';
 import type { Env } from '../../lib/types';
 
@@ -23,6 +24,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     throw new HttpError(400, '积分变动值不能为 0');
   }
   const reason = requireString(body.reason, '变动原因', { max: 50 });
+
+  // 区域隔离：只能给授权区域（含子孙）内的学生加减分
+  await assertStudentAllowed(env, ctx.regionScope, studentId);
 
   const { data, error } = await createUserClient(env, ctx.token).rpc('adjust_student_points', {
     p_student_id: studentId,
