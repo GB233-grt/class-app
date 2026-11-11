@@ -113,7 +113,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM students WHERE id = auth.uid() AND role IN ('teacher', 'admin')
+    SELECT 1 FROM students WHERE id = auth.uid() AND role IN ('teacher', 'admin', 'super_admin')
   );
 $$;
 
@@ -384,7 +384,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM students WHERE id = auth.uid() AND role = 'admin'
+    SELECT 1 FROM students WHERE id = auth.uid() AND role IN ('admin', 'super_admin')
   );
 $$;
 
