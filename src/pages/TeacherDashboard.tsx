@@ -2,20 +2,21 @@
  * 教师仪表盘：侧边栏导航（教学工具 / 我的账户）+ 欢迎横幅 + 面板
  */
 import { useEffect, useState } from 'react';
-import { Award, ClipboardList, FileSpreadsheet, GraduationCap, Presentation, UserCog } from 'lucide-react';
+import { Award, ClipboardList, FileSpreadsheet, GraduationCap, Megaphone, Presentation, UserCog } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { FulfillmentPanel } from '../components/feature/teacher/FulfillmentPanel';
 import { AwardPointsPanel } from '../components/feature/teacher/AwardPointsPanel';
 import { BulkAwardPanel } from '../components/feature/teacher/BulkAwardPanel';
 import { ClassroomMode } from '../components/feature/teacher/ClassroomMode';
+import { PromoPagesPanel } from '../components/feature/promo/PromoPagesPanel';
 import { SettingsPanel } from '../components/feature/settings/SettingsPanel';
 import { redemptionsApi } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import type { StaffRedemption } from '../types';
 
-type TeacherTabKey = 'classroom' | 'fulfillment' | 'award' | 'bulk-award' | 'account';
+type TeacherTabKey = 'classroom' | 'fulfillment' | 'award' | 'bulk-award' | 'promo' | 'account';
 
-const TAB_KEYS: TeacherTabKey[] = ['classroom', 'fulfillment', 'award', 'bulk-award', 'account'];
+const TAB_KEYS: TeacherTabKey[] = ['classroom', 'fulfillment', 'award', 'bulk-award', 'promo', 'account'];
 
 /** 支持通过 #classroom 之类的锚点直达某个标签页（方便老师收藏「课堂模式」） */
 function readTabFromHash(): TeacherTabKey {
@@ -34,6 +35,7 @@ const GROUPS: SidebarNavGroup[] = [
       { key: 'fulfillment', label: '兑换发放', icon: ClipboardList },
       { key: 'award', label: '学生加分', icon: Award },
       { key: 'bulk-award', label: '批量加分', icon: FileSpreadsheet },
+      { key: 'promo', label: '启幕宣传页', icon: Megaphone },
     ],
   },
   {
@@ -144,6 +146,7 @@ export default function TeacherDashboard() {
         {activeTab === 'fulfillment' && <FulfillmentPanel />}
         {activeTab === 'award' && <AwardPointsPanel />}
         {activeTab === 'bulk-award' && <BulkAwardPanel />}
+        {activeTab === 'promo' && <PromoPagesPanel />}
         {activeTab === 'account' && profile && (
           <SettingsPanel profile={profile} onUpdated={() => void refreshProfile()} />
         )}

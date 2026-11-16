@@ -15,6 +15,9 @@ import type {
   LedgerEntry,
   LeaderboardEntry,
   Page,
+  PromoPage,
+  PromoPublicItem,
+  PromoStatus,
   RedeemResponse,
   Redemption,
   Region,
@@ -156,6 +159,32 @@ export const adminApi = {
 
   /** 修改用户角色（仅超级管理员） */
   updateRole: (userId: string, role: UserRole) => api.put<Student>(`/admin/users/${userId}/role`, { role }),
+};
+
+
+/** 启幕宣传页 */
+export const promoApi = {
+  /** 当前应展示的内容（无内容时 item 为 null） */
+  active: () => api.get<{ item: PromoPublicItem | null }>('/promo-pages/active'),
+  /** 管理列表（教师+，分页） */
+  list: (params: PageQuery & { status?: PromoStatus } = {}) => {
+    const qs = buildPageQuery(params).replace(/^\?/, '');
+    const suffix = params.status ? `${qs ? '&' : ''}status=${params.status}` : '';
+    return api.get<Page<PromoPage>>(`/promo-pages${qs || suffix ? `?${qs}${suffix}` : ''}`);
+  },
+  /** 新建草稿 */
+  create: (payload: Partial<PromoPage>) => api.post<PromoPage>('/promo-pages', payload),
+  /** 编辑 */
+  update: (id: string, payload: Partial<PromoPage>) =>
+    api.put<PromoPage>(`/promo-pages/${id}`, payload),
+  /** 状态流转：submit / approve / reject / publish / offline */
+  act: (id: string, action: 'submit' | 'approve' | 'reject' | 'publish' | 'offline', reason?: string) =>
+    api.post<PromoPage>(`/promo-pages/${id}`, { action, reason }),
+  /** 删除 */
+  remove: (id: string) => api.delete<{ message: string }>(`/promo-pages/${id}`),
+  /** 埋点（失败静默） */
+  event: (id: string, type: 'view' | 'click') =>
+    api.post<{ ok: boolean }>(`/promo-pages/${id}/event`, { type }).catch(() => ({ ok: false })),
 };
 
 /** 物品兑换 */

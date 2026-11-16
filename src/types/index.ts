@@ -211,3 +211,48 @@ export interface Page<T> {
   items: T[];
   has_more: boolean;
 }
+
+/** 启幕宣传页 */
+export interface PromoPage {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  frequency: PromoFrequency;
+  audience: PromoAudience;
+  region_id: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  sort_order: number;
+  status: PromoStatus;
+  reject_reason: string | null;
+  created_by: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  view_count: number;
+  click_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 展示频次：每次启动 / 每日一次 / 同一内容仅一次 */
+export type PromoFrequency = 'once_per_launch' | 'daily' | 'once_per_content';
+
+/** 受众 */
+export type PromoAudience = 'all' | 'student' | 'staff';
+
+/** 审核状态 */
+export type PromoStatus = 'draft' | 'pending' | 'published' | 'rejected' | 'offline';
+
+/** 对外展示的精简内容 */
+export interface PromoPublicItem {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  frequency: PromoFrequency;
+}

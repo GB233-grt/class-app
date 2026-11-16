@@ -2,7 +2,7 @@
  * 管理员仪表盘：侧边栏导航（用户管理 / 商品与数据 / 系统）+ 统计概览 + 面板
  */
 import { useMemo, useState } from 'react';
-import { Boxes, Coins, Package, ShieldCheck, SlidersHorizontal, UserCog, UserPlus, Users } from 'lucide-react';
+import { Boxes, Coins, Megaphone, Package, ShieldCheck, SlidersHorizontal, UserCog, UserPlus, Users } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
 import { ItemsPanel } from '../components/feature/admin/ItemsPanel';
@@ -10,13 +10,14 @@ import { StudentsPanel } from '../components/feature/admin/StudentsPanel';
 import { CreateStudentPanel } from '../components/feature/admin/CreateStudentPanel';
 import { SystemSettingsPanel } from '../components/feature/admin/SystemSettingsPanel';
 import { RegionsPanel } from '../components/feature/admin/RegionsPanel';
+import { PromoPagesPanel } from '../components/feature/promo/PromoPagesPanel';
 import { SettingsPanel } from '../components/feature/settings/SettingsPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useStats } from '../hooks/useStats';
 import { useStudents } from '../hooks/useStudents';
 import { formatPoints } from '../lib/utils';
 
-type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'account' | 'regions';
+type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'account' | 'regions' | 'promo';
 
 const GROUPS: SidebarNavGroup[] = [
   {
@@ -28,7 +29,10 @@ const GROUPS: SidebarNavGroup[] = [
   },
   {
     title: '商品与数据',
-    items: [{ key: 'items', label: '商品管理', icon: Package }],
+    items: [
+      { key: 'items', label: '商品管理', icon: Package },
+      { key: 'promo', label: '启幕宣传页', icon: Megaphone },
+    ],
   },
   {
     title: '系统',
@@ -132,6 +136,7 @@ export default function AdminDashboard() {
         {activeTab === 'create' && <CreateStudentPanel />}
         {activeTab === 'system' && <SystemSettingsPanel />}
         {activeTab === 'regions' && profile?.role === 'super_admin' && <RegionsPanel />}
+        {activeTab === 'promo' && <PromoPagesPanel />}
         {activeTab === 'account' && profile && (
           <SettingsPanel profile={profile} onUpdated={() => void refreshProfile()} />
         )}

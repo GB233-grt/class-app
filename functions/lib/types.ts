@@ -13,6 +13,8 @@ export interface Env {
   SUPABASE_SERVICE_ROLE_KEY: string;
   /** Cloudflare Turnstile 服务端验证密钥（可选，配置后登录强制人机校验） */
   TURNSTILE_SECRET_KEY?: string;
+  /** 启幕宣传页外链域名白名单（逗号分隔，追加到内置教育/政务后缀） */
+  PROMO_LINK_ALLOWLIST?: string;
 }
 
 /** 角色：学生 / 教师 / 区域管理员 / 超级管理员 */
@@ -121,4 +123,40 @@ export interface AwardPayload {
   student_id: string;
   delta: number;
   reason: string;
+}
+
+/** 启幕宣传页 */
+export interface PromoPage {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  frequency: 'once_per_launch' | 'daily' | 'once_per_content';
+  audience: 'all' | 'student' | 'staff';
+  region_id: string | null;
+  start_at: string | null;
+  end_at: string | null;
+  sort_order: number;
+  status: 'draft' | 'pending' | 'published' | 'rejected' | 'offline';
+  reject_reason: string | null;
+  created_by: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  view_count: number;
+  click_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 对外展示用的精简结构（不含审核字段） */
+export interface PromoPublicItem {
+  id: string;
+  title: string;
+  body: string;
+  image_url: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  frequency: PromoPage['frequency'];
 }

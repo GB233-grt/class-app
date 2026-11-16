@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import { SplashPromo } from './components/feature/promo/SplashPromo';
 
 export default function App() {
   const { profile, initializing } = useAuth();
@@ -25,7 +26,11 @@ export default function App() {
   // 注意：super_admin 也属于管理端，必须显式判断，否则会掉进学生端兜底分支
   const isAdmin = profile.role === 'admin' || profile.role === 'super_admin';
 
-  if (isAdmin) return <AdminDashboard />;
-  if (profile.role === 'teacher') return <TeacherDashboard />;
-  return <StudentDashboard />;
+  return (
+    <>
+      {/* 启幕宣传页：满足频次策略时覆盖在主界面之上，关闭后不阻塞任何操作 */}
+      <SplashPromo />
+      {isAdmin ? <AdminDashboard /> : profile.role === 'teacher' ? <TeacherDashboard /> : <StudentDashboard />}
+    </>
+  );
 }
