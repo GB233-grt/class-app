@@ -35,21 +35,6 @@ export function matchesAudience(audience: PromoAudience, role: UserRole): boolea
   return role === 'teacher' || role === 'admin' || role === 'super_admin';
 }
 
-/**
- * 默认允许的外部域名后缀。
- * 通过环境变量 PROMO_LINK_ALLOWLIST 追加（逗号分隔），例如：
- *   PROMO_LINK_ALLOWLIST=example.edu.cn,school.edu
- */
-const DEFAULT_ALLOWED_SUFFIXES = ['edu.cn', 'gov.cn', 'ac.cn', 'edu', 'gov'];
-
-function allowedSuffixes(raw?: string): string[] {
-  const extra = (raw ?? '')
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-  return [...DEFAULT_ALLOWED_SUFFIXES, ...extra];
-}
-
 /** 站内相对路径（/xxx）永远放行 */
 function isRelativePath(url: string): boolean {
   return url.startsWith('/') && !url.startsWith('//');
@@ -57,9 +42,14 @@ function isRelativePath(url: string): boolean {
 
 /**
  * 校验跳转链接。
+ *
+ * 规则刻意保持宽松：只要是一个能正常跳转的地址即可（http / https / 站内路径）。
+ * 内容合规由「审核」环节把关，不再限制域名——
+ * 但协议非法（javascript:、data: 等）与协议相对路径（//host）一律拒绝。
+ *
  * @returns null 表示通过，否则返回中文错误提示
  */
-export function validatePromoLink(raw: string, extraAllowlist?: string): string | null {
+export function validatePromoLink(raw: string): string | null {
   const url = raw.trim();
   if (!url) return null; // 允许不填链接（纯展示）
   if (isRelativePath(url)) return null;
@@ -68,18 +58,11 @@ export function validatePromoLink(raw: string, extraAllowlist?: string): string 
   try {
     parsed = new URL(url);
   } catch {
-    return '跳转地址格式不正确，请填写完整的 https 链接或站内路径';
+    return '跳转地址格式不正确，请填写完整链接（如 https://example.com/page）或站内路径（如 /store）';
   }
 
-  if (parsed.protocol !== 'https:') {
-    return '跳转地址必须是 https 开头（校园宣传不允许 http 外链）';
-  }
-
-  const host = parsed.hostname.toLowerCase();
-  const suffixes = allowedSuffixes(extraAllowlist);
-  const matched = suffixes.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
-  if (!matched) {
-    return `外部链接域名未在白名单内：${host}。教育/政务站点以外的链接不允许发布`;
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return '跳转地址只支持 http / https 链接';
   }
   return null;
 }

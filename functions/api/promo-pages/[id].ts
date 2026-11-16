@@ -119,7 +119,7 @@ export const onRequestPost: PagesFunction<Env, 'id'> = async ({ params, request,
     if (!ctx.isAdmin) throw new HttpError(403, '只有管理员可以审核');
     if (page.status !== 'pending') throw new HttpError(409, '只有待审核内容可以审核');
     // 发布前再校验一次链接合规（防止旧数据绕过）
-    const linkError = validatePromoLink(page.link_url ?? '', env.PROMO_LINK_ALLOWLIST);
+    const linkError = validatePromoLink(page.link_url ?? '');
     if (linkError) throw new HttpError(400, `链接不合规：${linkError}`);
     if (!page.title || !page.body) throw new HttpError(400, '标题与正文不能为空');
     update.status = 'published';
@@ -144,7 +144,7 @@ export const onRequestPost: PagesFunction<Env, 'id'> = async ({ params, request,
     if (!['offline', 'draft'].includes(page.status)) {
       throw new HttpError(409, '当前状态不能直接发布');
     }
-    const linkError = validatePromoLink(page.link_url ?? '', env.PROMO_LINK_ALLOWLIST);
+    const linkError = validatePromoLink(page.link_url ?? '');
     if (linkError) throw new HttpError(400, `链接不合规：${linkError}`);
     update.status = 'published';
     update.reviewed_by = ctx.userId;

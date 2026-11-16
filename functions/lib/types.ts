@@ -13,8 +13,6 @@ export interface Env {
   SUPABASE_SERVICE_ROLE_KEY: string;
   /** Cloudflare Turnstile 服务端验证密钥（可选，配置后登录强制人机校验） */
   TURNSTILE_SECRET_KEY?: string;
-  /** 启幕宣传页外链域名白名单（逗号分隔，追加到内置教育/政务后缀） */
-  PROMO_LINK_ALLOWLIST?: string;
 }
 
 /** 角色：学生 / 教师 / 区域管理员 / 超级管理员 */

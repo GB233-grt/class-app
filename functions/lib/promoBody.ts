@@ -11,7 +11,7 @@ const AUDIENCES = ['all', 'student', 'staff'] as const;
 /** partial=true 时用于编辑：只校验请求里出现的字段 */
 export function parsePromoBody(
   body: Record<string, unknown>,
-  env: Env,
+  _env: Env,
   partial = false,
 ): Partial<PromoPage> {
   const result: Partial<PromoPage> = {};
@@ -30,7 +30,7 @@ export function parsePromoBody(
   }
   if (body.link_url !== undefined) {
     const linkUrl = optionalString(body.link_url, 500);
-    const error = validatePromoLink(linkUrl ?? '', env.PROMO_LINK_ALLOWLIST);
+    const error = validatePromoLink(linkUrl ?? '');
     if (error) throw new HttpError(400, error);
     result.link_url = linkUrl;
   }

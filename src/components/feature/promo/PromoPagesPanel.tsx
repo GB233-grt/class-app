@@ -248,10 +248,10 @@ export function PromoPagesPanel() {
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label="跳转链接（选填，需教育/政务域名）"
+                label="跳转链接（选填）"
                 value={form.link_url}
                 onChange={(e) => setField('link_url', e.target.value)}
-                placeholder="https://www.example.edu.cn/special/hongyan"
+                placeholder="https://example.com/page 或 /store"
               />
               <Input
                 label="按钮文案（选填，≤12 字）"

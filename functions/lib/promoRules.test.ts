@@ -54,28 +54,22 @@ describe('validatePromoLink', () => {
     expect(validatePromoLink('/store')).toBeNull();
   });
 
-  it('允许教育域名', () => {
+  it('允许任意 https 域名（不再限制教育/政务站点）', () => {
+    expect(validatePromoLink('https://www.example.com/promo')).toBeNull();
     expect(validatePromoLink('https://www.example.edu.cn/hongyan')).toBeNull();
   });
 
-  it('允许政务域名', () => {
-    expect(validatePromoLink('https://www.gov.cn/zt/2026')).toBeNull();
-  });
-
-  it('拒绝 http 外链', () => {
-    expect(validatePromoLink('http://example.edu.cn')).toContain('https');
-  });
-
-  it('拒绝白名单外的商业域名', () => {
-    expect(validatePromoLink('https://shop.example.com/promo')).toContain('白名单');
+  it('允许 http 链接', () => {
+    expect(validatePromoLink('http://example.com/page')).toBeNull();
   });
 
   it('拒绝协议相对路径 //evil.com', () => {
     expect(validatePromoLink('//evil.com/path')).not.toBeNull();
   });
 
-  it('支持通过环境变量追加白名单', () => {
-    expect(validatePromoLink('https://news.school.test/a', 'school.test')).toBeNull();
+  it('拒绝 javascript: 等危险协议', () => {
+    expect(validatePromoLink('javascript:alert(1)')).toContain('http');
+    expect(validatePromoLink('data:text/html,<script>')).toContain('http');
   });
 
   it('格式错误给出提示', () => {
