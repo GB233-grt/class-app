@@ -1,7 +1,7 @@
 /**
  * 管理员仪表盘：侧边栏导航（用户管理 / 商品与数据 / 系统）+ 统计概览 + 面板
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Boxes, Coins, Megaphone, Package, ShieldCheck, SlidersHorizontal, UserCog, UserPlus, Users } from 'lucide-react';
 import { SidebarLayout, type SidebarNavGroup } from '../components/layout/SidebarLayout';
 import { StatCard } from '../components/feature/StatCard';
@@ -18,6 +18,23 @@ import { useStudents } from '../hooks/useStudents';
 import { formatPoints } from '../lib/utils';
 
 type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'account' | 'regions' | 'promo';
+
+/** 支持 #account / #promo / #regions 之类的锚点直达 */
+const ADMIN_TAB_KEYS: AdminTabKey[] = [
+  'items',
+  'students',
+  'create',
+  'system',
+  'account',
+  'regions',
+  'promo',
+];
+
+function readAdminTabFromHash(allowRegions: boolean): AdminTabKey {
+  const hash = window.location.hash.replace('#', '') as AdminTabKey;
+  if (hash === 'regions' && !allowRegions) return 'items';
+  return ADMIN_TAB_KEYS.includes(hash) ? hash : 'items';
+}
 
 const GROUPS: SidebarNavGroup[] = [
   {
@@ -45,7 +62,22 @@ const GROUPS: SidebarNavGroup[] = [
 
 export default function AdminDashboard() {
   const { profile, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<AdminTabKey>('items');
+  const allowRegions = profile?.role === 'super_admin';
+  const [activeTab, setActiveTab] = useState<AdminTabKey>(() => readAdminTabFromHash(allowRegions));
+
+  // 标签页与地址栏锚点同步
+  useEffect(() => {
+    const next = `#${activeTab}`;
+    if (window.location.hash !== next) {
+      window.history.replaceState(null, '', next);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onHashChange = () => setActiveTab(readAdminTabFromHash(allowRegions));
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, [allowRegions]);
   const { stats, loading: statsLoading } = useStats();
   const { students } = useStudents();
 

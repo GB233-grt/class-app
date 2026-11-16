@@ -17,6 +17,14 @@ import { formatPoints } from '../lib/utils';
 
 type StudentTabKey = 'store' | 'history' | 'ledger' | 'leaderboard' | 'settings';
 
+/** 支持 #settings 之类的锚点直达（方便把「设置」单独发给学生） */
+const STUDENT_TAB_KEYS: StudentTabKey[] = ['store', 'history', 'ledger', 'leaderboard', 'settings'];
+
+function readStudentTabFromHash(): StudentTabKey {
+  const hash = window.location.hash.replace('#', '') as StudentTabKey;
+  return STUDENT_TAB_KEYS.includes(hash) ? hash : 'store';
+}
+
 const GROUPS: SidebarNavGroup[] = [
   {
     title: '积分商店',
@@ -38,7 +46,22 @@ const GROUPS: SidebarNavGroup[] = [
 
 export default function StudentDashboard() {
   const { profile, refreshProfile } = useAuth();
-  const [activeTab, setActiveTab] = useState<StudentTabKey>('store');
+  const [activeTab, setActiveTab] = useState<StudentTabKey>(readStudentTabFromHash);
+
+  // 标签页与地址栏锚点同步，刷新后仍停在原页面
+  useEffect(() => {
+    const next = `#${activeTab}`;
+    if (window.location.hash !== next) {
+      window.history.replaceState(null, '', next);
+    }
+  }, [activeTab]);
+
+  // 支持浏览器前进/后退
+  useEffect(() => {
+    const onHashChange = () => setActiveTab(readStudentTabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
   const {
     redemptions,
     loading: redemptionsLoading,
