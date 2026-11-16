@@ -14,14 +14,16 @@ import { redemptionsApi } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import type { StaffRedemption } from '../types';
 
-type TeacherTabKey = 'classroom' | 'fulfillment' | 'award' | 'bulk-award' | 'promo' | 'account';
+type TeacherTabKey = 'classroom' | 'fulfillment' | 'award' | 'bulk-award' | 'promo' | 'settings';
 
-const TAB_KEYS: TeacherTabKey[] = ['classroom', 'fulfillment', 'award', 'bulk-award', 'promo', 'account'];
+const TAB_KEYS: TeacherTabKey[] = ['classroom', 'fulfillment', 'award', 'bulk-award', 'promo', 'settings'];
 
 /** 支持通过 #classroom 之类的锚点直达某个标签页（方便老师收藏「课堂模式」） */
 function readTabFromHash(): TeacherTabKey {
-  const hash = window.location.hash.replace('#', '') as TeacherTabKey;
-  return TAB_KEYS.includes(hash) ? hash : 'fulfillment';
+  const raw = window.location.hash.replace('#', '');
+  // 兼容旧链接：以前账户页的锚点是 #account
+  const hash = raw === 'account' ? 'settings' : raw;
+  return TAB_KEYS.includes(hash as TeacherTabKey) ? (hash as TeacherTabKey) : 'fulfillment';
 }
 
 const GROUPS: SidebarNavGroup[] = [
@@ -40,7 +42,7 @@ const GROUPS: SidebarNavGroup[] = [
   },
   {
     title: '我的账户',
-    items: [{ key: 'account', label: '账户设置', icon: UserCog }],
+    items: [{ key: 'settings', label: '设置', icon: UserCog }],
   },
 ];
 
@@ -82,7 +84,7 @@ export default function TeacherDashboard() {
   }, []);
 
   const pendingCount = staffRedemptions.filter((record) => record.status === 'pending').length;
-  const isAccount = activeTab === 'account';
+  const isAccount = activeTab === 'settings';
 
   // 课堂模式是全屏投屏界面，不套侧边栏
   if (activeTab === 'classroom') {
@@ -147,7 +149,7 @@ export default function TeacherDashboard() {
         {activeTab === 'award' && <AwardPointsPanel />}
         {activeTab === 'bulk-award' && <BulkAwardPanel />}
         {activeTab === 'promo' && <PromoPagesPanel />}
-        {activeTab === 'account' && profile && (
+        {activeTab === 'settings' && profile && (
           <SettingsPanel profile={profile} onUpdated={() => void refreshProfile()} />
         )}
       </div>

@@ -17,21 +17,23 @@ import { useStats } from '../hooks/useStats';
 import { useStudents } from '../hooks/useStudents';
 import { formatPoints } from '../lib/utils';
 
-type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'account' | 'regions' | 'promo';
+type AdminTabKey = 'items' | 'students' | 'create' | 'system' | 'settings' | 'regions' | 'promo';
 
-/** 支持 #account / #promo / #regions 之类的锚点直达 */
+/** 支持 #settings / #promo / #regions 之类的锚点直达 */
 const ADMIN_TAB_KEYS: AdminTabKey[] = [
   'items',
   'students',
   'create',
   'system',
-  'account',
+  'settings',
   'regions',
   'promo',
 ];
 
 function readAdminTabFromHash(allowRegions: boolean): AdminTabKey {
-  const hash = window.location.hash.replace('#', '') as AdminTabKey;
+  const raw = window.location.hash.replace('#', '');
+  // 兼容旧链接：以前账户页的锚点是 #account
+  const hash = (raw === 'account' ? 'settings' : raw) as AdminTabKey;
   if (hash === 'regions' && !allowRegions) return 'items';
   return ADMIN_TAB_KEYS.includes(hash) ? hash : 'items';
 }
@@ -55,7 +57,7 @@ const GROUPS: SidebarNavGroup[] = [
     title: '系统',
     items: [
       { key: 'system', label: '系统设置', icon: SlidersHorizontal },
-      { key: 'account', label: '我的账户', icon: UserCog },
+      { key: 'settings', label: '设置', icon: UserCog },
     ],
   },
 ];
@@ -100,7 +102,7 @@ export default function AdminDashboard() {
   );
 
   // 系统设置与账户页不需要侧边栏的特色/历史卡片
-  const hideSideCards = activeTab === 'system' || activeTab === 'account';
+  const hideSideCards = activeTab === 'system' || activeTab === 'settings';
 
   return (
     <SidebarLayout
@@ -169,7 +171,7 @@ export default function AdminDashboard() {
         {activeTab === 'system' && <SystemSettingsPanel />}
         {activeTab === 'regions' && profile?.role === 'super_admin' && <RegionsPanel />}
         {activeTab === 'promo' && <PromoPagesPanel />}
-        {activeTab === 'account' && profile && (
+        {activeTab === 'settings' && profile && (
           <SettingsPanel profile={profile} onUpdated={() => void refreshProfile()} />
         )}
       </div>
