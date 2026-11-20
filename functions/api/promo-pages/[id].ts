@@ -51,9 +51,17 @@ export const onRequestPut: PagesFunction<Env, 'id'> = async ({ params, request, 
   const page = await loadPage(env, id);
   assertCanManage(ctx, page);
 
-  const isOwnerEditable = page.created_by === ctx.userId && ['draft', 'rejected'].includes(page.status);
-  if (!ctx.isAdmin && !isOwnerEditable) {
-    throw new HttpError(403, '已提交审核的内容不能编辑，如需修改请联系管理员驳回');
+  // 可编辑状态：
+  //   · 草稿 / 已驳回 / 已下线 —— 创建者本人或管理员都可改
+  //   · 已发布 —— 仅管理员可直接改（改动立即对师生生效）；创建者需先由管理员下线
+  //   · 待审核 —— 不能改，避免审核中的内容被掉包
+  const ownerEditable = ['draft', 'rejected', 'offline'].includes(page.status);
+  const isOwner = page.created_by === ctx.userId;
+  if (!ctx.isAdmin) {
+    if (!isOwner) throw new HttpError(403, '只能编辑自己创建的内容');
+    if (!ownerEditable) {
+      throw new HttpError(403, '内容审核中或已发布，不能直接编辑。请等待审核结果，或联系管理员下线后再修改');
+    }
   }
 
   const body = await readJson<Record<string, unknown>>(request);
@@ -110,7 +118,7 @@ export const onRequestPost: PagesFunction<Env, 'id'> = async ({ params, request,
     if (page.created_by !== ctx.userId && !ctx.isAdmin) {
       throw new HttpError(403, '只能提交自己创建的内容');
     }
-    if (!['draft', 'rejected'].includes(page.status)) {
+    if (!['draft', 'rejected', 'offline'].includes(page.status)) {
       throw new HttpError(409, '当前状态不能提交审核');
     }
     update.status = 'pending';

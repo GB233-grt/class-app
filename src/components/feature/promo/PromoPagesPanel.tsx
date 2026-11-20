@@ -318,7 +318,15 @@ export function PromoPagesPanel() {
         <div className="space-y-3">
           {sorted.map((page) => {
             const meta = STATUS_META[page.status];
-            const canEdit = ['draft', 'rejected'].includes(page.status);
+            const isOwner = page.created_by === profile?.id;
+            // 草稿 / 已驳回 / 已下线：创建者与管理员均可编辑
+            // 已发布：仅管理员可直接编辑（改动立即生效）；教师需先请管理员下线
+            const editableStatuses = ['draft', 'rejected', 'offline'];
+            const canEdit =
+              isAdmin || (isOwner && editableStatuses.includes(page.status));
+            // 待审核中不可重复提交
+            const canSubmit =
+              (isAdmin || isOwner) && [...editableStatuses, 'offline'].includes(page.status);
             return (
               <Card key={page.id} className="p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -342,6 +350,16 @@ export function PromoPagesPanel() {
                       {page.end_at ? ` ~ ${formatDateTime(page.end_at)}` : ' ~ 长期'}
                       {' · '}曝光 {page.view_count} / 点击 {page.click_count}
                     </p>
+                    {page.status === 'published' && !isAdmin && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        已发布内容不可直接修改，请联系管理员下线后再编辑。
+                      </p>
+                    )}
+                    {page.status === 'published' && isAdmin && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        已发布内容可直接编辑，保存后立即对师生生效；也可以先「下线」再修改。
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -350,10 +368,16 @@ export function PromoPagesPanel() {
                         编辑
                       </Button>
                     )}
-                    {canEdit && (
+                    {canSubmit && page.status !== 'offline' && (
                       <Button size="sm" variant="outline" onClick={() => void act(page, 'submit')} disabled={busy}>
                         <Send className="h-3.5 w-3.5" />
                         提交审核
+                      </Button>
+                    )}
+                    {canSubmit && page.status === 'offline' && (
+                      <Button size="sm" variant="outline" onClick={() => void act(page, 'submit')} disabled={busy}>
+                        <Send className="h-3.5 w-3.5" />
+                        重新提交审核
                       </Button>
                     )}
                     {isAdmin && page.status === 'pending' && (
