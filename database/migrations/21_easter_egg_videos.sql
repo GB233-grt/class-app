@@ -24,6 +24,11 @@ CREATE TABLE IF NOT EXISTS easter_egg_videos (
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
 
+-- 兼容早期已建表但尚未增加区域字段的测试环境。
+ALTER TABLE public.easter_egg_videos
+  ADD COLUMN IF NOT EXISTS region_id uuid REFERENCES public.regions(id) ON DELETE CASCADE,
+  ADD COLUMN IF NOT EXISTS reject_reason text;
+
 CREATE INDEX IF NOT EXISTS idx_easter_egg_videos_public
   ON easter_egg_videos(status, is_active, sort_order);
 

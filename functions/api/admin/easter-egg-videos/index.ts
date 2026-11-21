@@ -19,9 +19,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
   const status = url.searchParams.get('status');
 
+  // 不用 PostgREST 的 regions(name) 关系嵌套：部分已升级数据库的 schema cache
+  // 尚未识别该 FK；响应保留 region_id，前端用 /api/admin/regions 映射名称。
   let query = createAdminClient(env)
     .from('easter_egg_videos')
-    .select('*, regions(name)')
+    .select('*')
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: false });
 
