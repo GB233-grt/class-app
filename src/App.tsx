@@ -8,9 +8,36 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import { SplashPromo } from './components/feature/promo/SplashPromo';
+import UserTermsPage from './pages/UserTermsPage';
+
+/** 用户守则公开路径：兼容站内无后缀路由与 README 中既有的 .md 链接 */
+function isPublicTermsPath(pathname: string): boolean {
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return normalized === '/docs/user-terms' || normalized === '/docs/user-terms.md';
+}
+
+/** 未登录访问业务页时，记下目标，登录后可返回原页 */
+function redirectToLogin(pathname: string, search: string, hash: string): void {
+  const target = `${pathname}${search}${hash}`;
+  const query = target && target !== '/' ? `?redirect=${encodeURIComponent(target)}` : '';
+  window.location.replace(`/${query}`);
+}
 
 export default function App() {
   const { profile, initializing } = useAuth();
+  const pathname = window.location.pathname;
+  const isTermsPage = isPublicTermsPath(pathname);
+
+  // 公开守则路由不经过 Auth 初始化与登录守卫，带不带 .md 都可直接访问
+  if (isTermsPage) {
+    return <UserTermsPage />;
+  }
+
+  // 根路径保持登录页行为；其他未登录业务路由记下原路径并跳到根路径登录页
+  if (!initializing && !profile && pathname !== '/') {
+    redirectToLogin(pathname, window.location.search, window.location.hash);
+    return <PageLoader />;
+  }
 
   // 首次会话探测中
   if (initializing) {

@@ -58,6 +58,11 @@ export default function LoginPage() {
     }
     try {
       await login(values.email, values.password, captchaToken ?? undefined);
+      // 只允许站内绝对路径，防止 redirect 参数变成外部开放重定向
+      const requestedPath = new URLSearchParams(window.location.search).get('redirect');
+      if (requestedPath?.startsWith('/') && !requestedPath.startsWith('//')) {
+        window.location.replace(requestedPath);
+      }
     } catch (err) {
       setError(getErrorMessage(err, '登录失败，请稍后重试'));
       // 登录失败后重置验证码：token 一次性使用，需让用户重新验证
@@ -207,7 +212,7 @@ export default function LoginPage() {
                     <li>平台记录必要的账号和操作信息，用于积分核对、问题处理与安全维护；数据按学校相关规定管理。</li>
                   </ol>
                   <a
-                    href="/docs/user-terms.md"
+                    href="/docs/user-terms"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-block font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
@@ -228,7 +233,7 @@ export default function LoginPage() {
                 <span>
                   我已阅读并同意
                   <a
-                    href="/docs/user-terms.md"
+                    href="/docs/user-terms"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mx-1 font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
