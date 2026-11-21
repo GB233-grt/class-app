@@ -29,6 +29,10 @@
 
 <br/>
 
+
+
+> Sign-in requires reading and accepting the [Points Store User Rules](docs/user-terms.en.md).
+
 ## ⚡ Run it in 30 seconds
 
 ```bash

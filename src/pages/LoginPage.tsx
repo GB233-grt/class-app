@@ -2,6 +2,7 @@
  * 登录页：左右分栏（桌面端左侧品牌展示区 + 右侧登录表单）
  */
 import { useRef, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BarChart3, Coins, GraduationCap, Info, ShoppingBag, type LucideIcon } from 'lucide-react';
@@ -26,6 +27,8 @@ export default function LoginPage() {
   const { showToast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   // Cloudflare Turnstile 人机验证
   const turnstileRef = useRef<TurnstileRef>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -44,6 +47,10 @@ export default function LoginPage() {
   // 登录（Supabase Auth 邮箱密码 + Turnstile 人机校验）
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
+    if (!termsAccepted) {
+      setError('请先阅读并同意《积分商城用户守则》');
+      return;
+    }
     // 已配置站点密钥时，必须先完成人机验证
     if (turnstileEnabled && !captchaToken) {
       setError('请先完成下方的人机验证');
@@ -168,6 +175,72 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* 用户守则：登录前必须阅读并勾选 */}
+            <section className="rounded-lg border border-ink-200 bg-white p-3.5">
+              <button
+                type="button"
+                onClick={() => setTermsOpen((open) => !open)}
+                aria-expanded={termsOpen}
+                aria-controls="user-terms-content"
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <span className="text-sm font-semibold text-ink-800">积分商城用户守则</span>
+                {termsOpen ? (
+                  <ChevronUp className="h-4 w-4 shrink-0 text-ink-400" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 shrink-0 text-ink-400" />
+                )}
+              </button>
+              {termsOpen && (
+                <div
+                  id="user-terms-content"
+                  className="mt-3 max-h-48 space-y-2 overflow-y-auto border-t border-ink-100 pt-3 text-xs leading-relaxed text-ink-600"
+                >
+                  <p>使用本平台时，请遵守以下规则：</p>
+                  <ol className="list-decimal space-y-1 pl-4">
+                    <li>仅使用本人账号；妥善保管密码，不得借用、转让或尝试访问他人账号。</li>
+                    <li>积分与兑换仅用于学校认可的学习激励活动，不得通过作弊、冒用身份或利用系统漏洞获取利益。</li>
+                    <li>尊重师生与校园秩序；不得发布违法、欺凌、歧视、商业推广或其他不当内容。</li>
+                    <li>不得恶意干扰、扫描、攻击系统，或尝试绕过权限访问非授权区域的数据。</li>
+                    <li>发现账号异常、数据错误或安全问题时，请及时联系学校老师或管理员。</li>
+                    <li>平台记录必要的账号和操作信息，用于积分核对、问题处理与安全维护；数据按学校相关规定管理。</li>
+                  </ol>
+                  <a
+                    href="/docs/user-terms.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800"
+                  >
+                    查看完整用户守则
+                  </a>
+                </div>
+              )}
+              <label className="mt-3 flex cursor-pointer items-start gap-2.5 border-t border-ink-100 pt-3 text-sm text-ink-700">
+                <input
+                  type="checkbox"
+                  required
+                  checked={termsAccepted}
+                  onChange={(event) => setTermsAccepted(event.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+                  aria-describedby="terms-required-hint"
+                />
+                <span>
+                  我已阅读并同意
+                  <a
+                    href="/docs/user-terms.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mx-1 font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
+                  >
+                    《积分商城用户守则》
+                  </a>
+                </span>
+              </label>
+              <p id="terms-required-hint" className="mt-1 pl-[26px] text-xs text-ink-400">
+                登录前必须勾选确认；取消勾选后需重新确认。
+              </p>
+            </section>
 
             {/* Cloudflare Turnstile 人机验证（仅在配置站点密钥后渲染） */}
             {turnstileEnabled && (
