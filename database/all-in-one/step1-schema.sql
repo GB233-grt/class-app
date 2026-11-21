@@ -12,18 +12,50 @@
 -- ============================================================
 -- 第 1 部分：用户表 students（学生 / 教师 / 管理员）
 -- ============================================================
+CREATE TABLE regions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL CHECK (name <> ''),
+  type text NOT NULL DEFAULT 'class' CHECK (type IN ('campus','grade','class','other')),
+  parent_id uuid REFERENCES regions(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_regions_parent ON regions(parent_id);
+
 CREATE TABLE students (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,                          -- 姓名
   student_no text UNIQUE,                      -- 学号（可选）
   email text UNIQUE NOT NULL,                  -- 邮箱（登录用）
   role text NOT NULL DEFAULT 'student'
-    CHECK (role IN ('student', 'teacher', 'admin')),  -- 角色：学生/教师/管理员
+    CHECK (role IN ('student', 'teacher', 'admin', 'super_admin')),  -- 角色：学生/教师/管理员
   points integer NOT NULL DEFAULT 0
     CHECK (points >= 0),                       -- 当前积分余额
-  created_at timestamptz NOT NULL DEFAULT now()
+  region_id uuid REFERENCES regions(id) ON DELETE SET NULL,
+  public_tags text[] NOT NULL DEFAULT '{}',
+  hidden_tags text[] NOT NULL DEFAULT '{}',
+  easter_egg_opt_in boolean NOT NULL DEFAULT false,
+  easter_egg_video_id text CHECK (easter_egg_video_id IS NULL OR easter_egg_video_id ~ '^BV[0-9A-Za-z]{10}$'),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT students_public_tags_count_check CHECK (cardinality(public_tags) <= 8),
+  CONSTRAINT students_hidden_tags_count_check CHECK (cardinality(hidden_tags) <= 8),
+  CONSTRAINT students_tags_no_empty_check CHECK (array_position(public_tags, '') IS NULL AND array_position(hidden_tags, '') IS NULL)
 );
 
+CREATE INDEX idx_students_region ON students(region_id);
+COMMENT ON COLUMN students.public_tags IS '公开标签（最多 8 个），学生个人资料可见';
+COMMENT ON COLUMN students.hidden_tags IS '仅授权教职工可见的内部标签';
+COMMENT ON COLUMN students.easter_egg_opt_in IS '学生自愿开启校园视频彩蛋，默认关闭';
+COMMENT ON COLUMN students.easter_egg_video_id IS '引用管理员审核通过的视频 BV 号';
+CREATE TABLE region_members (
+  user_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  region_id uuid NOT NULL REFERENCES regions(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, region_id)
+);
+CREATE INDEX idx_region_members_region ON region_members(region_id, user_id);
+COMMENT ON COLUMN students.public_tags IS '公开标签';
+COMMENT ON COLUMN students.hidden_tags IS '仅授权教职工可见的内部标签';
+COMMENT ON COLUMN students.easter_egg_opt_in IS '学生自愿开启校园视频彩蛋，默认关闭';
 CREATE INDEX idx_students_email ON students(email);
 CREATE INDEX idx_students_role ON students(role);
 
@@ -61,6 +93,24 @@ COMMENT ON COLUMN items.download_limit IS '下载次数限制（0=不限制）';
 COMMENT ON COLUMN items.expires_at IS '商品到期时间（NULL=永不过期）；到期后自动下架';
 
 -- ============================================================
+-- 学校审核通过的校园主题视频目录；前端只能选择目录中的视频，不接受任意 BV 号
+CREATE TABLE easter_egg_videos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL CHECK (char_length(title) BETWEEN 1 AND 80),
+  description text NOT NULL DEFAULT '' CHECK (char_length(description) <= 300),
+  bvid text NOT NULL CHECK (bvid ~ '^BV[0-9A-Za-z]{10}$'),
+  category text NOT NULL DEFAULT 'campus' CHECK (category IN ('campus','study','culture','other')),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_by uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  reviewed_by uuid REFERENCES students(id) ON DELETE SET NULL,
+  reviewed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_easter_egg_videos_public ON easter_egg_videos(status, is_active, sort_order);
+ALTER TABLE easter_egg_videos ENABLE ROW LEVEL SECURITY;
 -- 第 3 部分：兑换记录表 redemptions
 -- ============================================================
 CREATE TABLE redemptions (
@@ -372,6 +422,8 @@ GRANT EXECUTE ON FUNCTION expire_items() TO authenticated;
 -- 学生凭证只能读自己的数据；教师可只读学生名单与全部兑换记录
 -- ============================================================
 ALTER TABLE students      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE regions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE region_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE items         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE redemptions   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE points_ledger ENABLE ROW LEVEL SECURITY;

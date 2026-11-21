@@ -49,7 +49,8 @@ export async function requireAuth(env: Env, request: Request): Promise<AuthConte
 
   const { data: profile, error: profileError } = await client
     .from('students')
-    .select('*')
+    // 显式列公开字段。hidden_tags 永不进入普通登录上下文或 /api/auth/me。
+    .select('id, name, student_no, email, role, points, region_id, created_at')
     .eq('id', userData.user.id)
     .maybeSingle();
 

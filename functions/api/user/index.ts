@@ -7,7 +7,7 @@
 import { HttpError, jsonResponse, optionalString, readJson, requireString, translateDbError } from '../../lib/http';
 import { requireAuth } from '../../lib/auth';
 import { createAdminClient, createAnonClient } from '../../lib/supabase';
-import type { Env, Student } from '../../lib/types';
+import type { Env } from '../../lib/types';
 
 interface ProfileBody {
   name?: string;
@@ -33,10 +33,16 @@ async function isProfileEditAllowed(env: Env): Promise<boolean> {
   }
 }
 
-// 获取当前用户资料
+// 获取当前用户资料：显式返回公开字段，hidden_tags 永不出现在普通 profile 响应中
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const ctx = await requireAuth(env, request);
-  return jsonResponse(ctx.profile as Student);
+  const { data, error } = await createAdminClient(env)
+    .from('students')
+    .select('id, name, student_no, email, role, points, region_id, public_tags, created_at')
+    .eq('id', ctx.userId)
+    .maybeSingle();
+  if (error || !data) throw new HttpError(500, '获取用户资料失败');
+  return jsonResponse(data);
 };
 
 // 更新当前用户资料（昵称 + 学号）

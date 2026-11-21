@@ -7,15 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  AlertTriangle,
-  CheckCircle2,
-  KeyRound,
-  Lock,
-  PackageCheck,
-  ShieldCheck,
-  XCircle,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, KeyRound, Lock, PackageCheck, ShieldCheck, XCircle } from 'lucide-react';
 import { authApi, userApi } from '../../../api';
 import { useToast } from '../../../hooks/useToast';
 import {
@@ -28,6 +20,7 @@ import { Button } from '../../common/Button';
 import { Card } from '../../common/Card';
 import { Input } from '../../common/Input';
 import { PasswordRules } from '../../common/PasswordRules';
+import { StudentEasterEgg } from '../promo/StudentEasterEgg';
 import { getErrorMessage } from '../../../lib/utils';
 import type { Student } from '../../../types';
 
@@ -53,7 +46,7 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
   const [allowProfileEdit, setAllowProfileEdit] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  // 读取系统配置：管理员可在「系统设置」中开关「学生自助修改个人信息」
+  // 读取用户可控的个人资料权限开关。
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -63,17 +56,13 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
         const record = settings.find((item) => item.key === 'allow_profile_edit');
         setAllowProfileEdit(record?.value?.enabled === true);
       } catch {
-        // 读取失败按关闭处理（与后端一致）
         if (!cancelled) setAllowProfileEdit(false);
       } finally {
         if (!cancelled) setSettingsLoaded(true);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
-
   const password = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: { old_password: '', new_password: '', confirm_password: '' },
@@ -213,7 +202,8 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
       )}
 
       {activeTab === 'profile' && (
-        <Card className="p-6">
+        <div className="space-y-4">
+          <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-ink-900">个人资料</h2>
           {!settingsLoaded ? (
             <p className="mb-6 text-sm text-ink-400">正在读取权限配置…</p>
@@ -250,6 +240,15 @@ export function SettingsPanel({ profile, onUpdated }: SettingsPanelProps) {
             </Button>
           </form>
         </Card>
+
+        <Card className="p-6">
+          <h2 className="mb-3 text-lg font-bold text-ink-900">校园主题视频</h2>
+          <p className="mb-4 text-sm leading-relaxed text-ink-500">
+            此设置由你本人控制，与学校内部标签无关。默认关闭；开启后可选择已审核视频，并且必须由你主动点击播放，不会自动播放。
+          </p>
+          <StudentEasterEgg studentId={profile.id} />
+        </Card>
+        </div>
       )}
 
       {activeTab === 'danger' && (

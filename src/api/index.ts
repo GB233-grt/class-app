@@ -10,6 +10,7 @@ import type {
   ChangePasswordPayload,
   CreateItemPayload,
   CreateStudentPayload,
+  EasterEggVideo,
   FulfillmentStatus,
   Item,
   LedgerEntry,
@@ -25,6 +26,7 @@ import type {
   StaffRedemption,
   Stats,
   Student,
+  StudentTagsResponse,
   UpdateProfilePayload,
   UserRole,
 } from '../types';
@@ -123,12 +125,28 @@ export const userApi = {
   update: (payload: UpdateProfilePayload) => api.put<Student>('/user', payload),
   /** 当前学生的兑换汇总（件数 / 消耗积分），用于分页场景下的准确统计 */
   summary: () => api.get<{ total_items: number; total_spent: number }>('/user/summary'),
+  /** 学生本人公开标签与自愿偏好；响应字段不含 hidden_tags */
+  myTags: (studentId: string) => api.get<StudentTagsResponse>(`/students/${studentId}/tags`),
+  /** 学生本人更新自愿视频偏好；后端拒绝传入 hidden_tags/public_tags 以外字段 */
+  updateMyTags: (
+    studentId: string,
+    payload: { public_tags?: string[]; easter_egg_opt_in?: boolean; easter_egg_video_id?: string | null },
+  ) => api.put<StudentTagsResponse>(`/students/${studentId}/tags`, payload),
+  /** 已审核的校园主题视频目录（只在用户主动开启后请求） */
+  easterEggVideos: () => api.get<{ enabled: boolean; videos: EasterEggVideo[] }>('/student-easter-eggs'),
   /** 注销账号（旧密码确认，不可逆） */
   deleteAccount: (password: string) => api.delete<{ message: string }>('/user', { old_password: password }),
 };
 
 /** 管理员设置（管理员） */
 export const adminApi = {
+  /** 管理员/教师：查看学生标签（响应只对教职工包含 hidden_tags） */
+  studentTags: (studentId: string) => api.get<StudentTagsResponse>(`/students/${studentId}/tags`),
+  /** 管理员/教师：设置公开与内部标签（服务端执行区域授权校验） */
+  updateStudentTags: (
+    studentId: string,
+    payload: { public_tags?: string[]; hidden_tags?: string[] },
+  ) => api.put<StudentTagsResponse>(`/students/${studentId}/tags`, payload),
   /** 系统配置管理 */
   systemSettings: {
     /** 获取所有系统配置 */

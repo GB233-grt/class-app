@@ -6,6 +6,23 @@
 /** 用户角色 */
 export type UserRole = 'student' | 'teacher' | 'admin' | 'super_admin';
 
+/** 经管理员审核的校园视频彩蛋目录项 */
+export interface EasterEggVideo {
+  id: string;
+  title: string;
+  bvid: string;
+  description: string;
+}
+
+/** 学生标签 API 响应；hidden_tags 仅教职工接口响应中存在 */
+export interface StudentTagsResponse {
+  id: string;
+  public_tags: string[];
+  hidden_tags?: string[];
+  easter_egg_opt_in: boolean;
+  easter_egg_video_id: string | null;
+}
+
 /** 学生/教师/管理员资料（students 表） */
 export interface Student {
   id: string;

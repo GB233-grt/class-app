@@ -19,7 +19,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   let query = createUserClient(env, ctx.token)
     .from('students')
-    .select('*')
+    .select('id, name, student_no, email, role, points, region_id, public_tags, created_at')
     .order('created_at', { ascending: true });
 
   if (!ctx.regionScope.isSuperAdmin) {
@@ -94,7 +94,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const { data: profile, error: insertError } = await adminClient
     .from('students')
     .insert({ id: authData.user.id, name, student_no: studentNo, email, role, points, region_id: regionId })
-    .select('*')
+    .select('id, name, student_no, email, role, points, region_id, public_tags, created_at')
     .single();
 
   if (insertError) {
