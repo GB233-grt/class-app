@@ -52,7 +52,6 @@ const GROUPS: SidebarNavGroup[] = [
     items: [
       { key: 'items', label: '商品管理', icon: Package },
       { key: 'promo', label: '启幕宣传页', icon: Megaphone },
-      { key: 'videos', label: '校园视频审核', icon: Video },
     ],
   },
   {
@@ -60,6 +59,7 @@ const GROUPS: SidebarNavGroup[] = [
     items: [
       { key: 'system', label: '系统设置', icon: SlidersHorizontal },
       { key: 'settings', label: '设置', icon: UserCog },
+      { key: 'videos', label: '校园视频审核', icon: Video },
     ],
   },
 ];

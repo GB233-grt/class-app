@@ -300,9 +300,9 @@ export function StudentsPanel() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="student-tags-title"
-            className="animate-fade-up h-full w-full max-w-lg overflow-y-auto bg-white p-5 shadow-2xl sm:p-7"
+            className="animate-fade-up flex h-full w-full max-w-3xl flex-col overflow-hidden bg-white shadow-2xl sm:m-4 sm:h-[calc(100vh-2rem)] sm:rounded-2xl"
           >
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-ink-100 px-5 py-4 sm:px-7">
               <div>
                 <h3 id="student-tags-title" className="text-xl font-bold text-ink-950">
                   {tagTarget.name} · 标签管理
@@ -318,17 +318,18 @@ export function StudentsPanel() {
             </div>
 
             {tagsLoading ? (
-              <p className="mt-8 text-sm text-ink-400">正在加载标签…</p>
+              <p className="m-5 text-sm text-ink-400">正在加载标签…</p>
             ) : (
-              <div className="mt-6 space-y-6">
-                <section className="space-y-3">
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+                <div className="grid items-start gap-4 md:grid-cols-2">
+                <section className="flex h-full flex-col gap-3 rounded-xl border border-ink-100 bg-white p-4">
                   <div>
                     <h4 className="font-semibold text-ink-900">公开标签</h4>
                     <p className="mt-1 text-xs leading-relaxed text-ink-500">
                       标签会显示在学生个人资料中。请使用积极、尊重且适合校园公开展示的描述。
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex min-h-9 flex-wrap content-start gap-2">
                     {publicTags.length === 0 && <span className="text-sm text-ink-400">暂无公开标签</span>}
                     {publicTags.map((tag) => (
                       <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1.5 text-sm text-brand-700">
@@ -337,7 +338,7 @@ export function StudentsPanel() {
                       </span>
                     ))}
                   </div>
-                  <div className="flex items-end gap-2">
+                  <div className="mt-auto flex items-end gap-2">
                     <div className="min-w-0 flex-1">
                       <Input label="添加公开标签" value={publicTagInput} maxLength={20} placeholder="如：阅读爱好者" onChange={(e) => setPublicTagInput(e.target.value)} />
                     </div>
@@ -345,15 +346,15 @@ export function StudentsPanel() {
                   </div>
                 </section>
 
-                <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+                <section className="flex h-full flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-4">
                   <div>
                     <h4 className="font-semibold text-ink-900">隐形标签（仅校方内部）</h4>
-                    <p className="mt-1 flex items-start gap-1.5 text-xs leading-relaxed text-ink-600">
+                    <p className="mt-1 flex items-start gap-1.5 text-xs leading-normal text-ink-600">
                       <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
                       仅供获授权教师和管理员内部管理使用，不对学生展示，也不会用于触发视频或其他学生端效果。请勿添加羞辱、歧视或敏感个人信息。
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex min-h-9 flex-wrap content-start gap-2">
                     {hiddenTags.length === 0 && <span className="text-sm text-ink-400">暂无内部标签</span>}
                     {hiddenTags.map((tag) => (
                       <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1.5 text-sm text-amber-900">
@@ -367,7 +368,7 @@ export function StudentsPanel() {
                       <button key={tag} type="button" disabled={hiddenTags.includes(tag) || hiddenTags.length >= 8} onClick={() => setHiddenTags((tags) => [...tags, tag])} className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-40">+ {tag}</button>
                     ))}
                   </div>
-                  <div className="flex items-end gap-2">
+                  <div className="mt-auto flex items-end gap-2">
                     <div className="min-w-0 flex-1">
                       <Input label="自定义内部标签" value={hiddenTagInput} maxLength={20} placeholder="仅教师/管理员可见" onChange={(e) => setHiddenTagInput(e.target.value)} />
                     </div>
@@ -375,7 +376,8 @@ export function StudentsPanel() {
                   </div>
                 </section>
 
-                <div className="sticky bottom-0 flex justify-end gap-2 border-t border-ink-100 bg-white py-4">
+                </div>
+                <div className="sticky bottom-0 flex shrink-0 justify-end gap-2 border-t border-ink-100 bg-white px-5 py-4 sm:px-7">
                   <Button type="button" variant="ghost" onClick={() => setTagTarget(null)}>取消</Button>
                   <Button type="button" onClick={() => setTagConfirm(true)}>保存标签</Button>
                 </div>

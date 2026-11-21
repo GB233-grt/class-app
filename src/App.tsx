@@ -9,6 +9,7 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import { SplashPromo } from './components/feature/promo/SplashPromo';
 import UserTermsPage from './pages/UserTermsPage';
+import UsageGuidePage from './pages/UsageGuidePage';
 
 /** 用户守则公开路径：兼容站内无后缀路由与 README 中既有的 .md 链接 */
 function isPublicTermsPath(pathname: string): boolean {
@@ -27,10 +28,14 @@ export default function App() {
   const { profile, initializing } = useAuth();
   const pathname = window.location.pathname;
   const isTermsPage = isPublicTermsPath(pathname);
+  const isUsageGuide = pathname.replace(/\/+$/, '') === '/docs/usage-guide';
 
-  // 公开守则路由不经过 Auth 初始化与登录守卫，带不带 .md 都可直接访问
+  // 用户守则与功能指南均为公开静态路由，不经过 Auth 登录守卫
   if (isTermsPage) {
     return <UserTermsPage />;
+  }
+  if (isUsageGuide) {
+    return <UsageGuidePage />;
   }
 
   // 根路径保持登录页行为；其他未登录业务路由记下原路径并跳到根路径登录页

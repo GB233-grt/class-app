@@ -3,10 +3,10 @@
  * 区域范围和角色权限由后端接口强制校验。
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Eye, EyeOff, Loader2, Plus, ShieldCheck, X } from 'lucide-react';
+import { Check, CircleHelp, Eye, EyeOff, Loader2, Plus, ShieldCheck, X } from 'lucide-react';
 import { adminApi } from '../../../api';
-import { useAuth } from '../../../hooks/useAuth';
 import { useToast } from '../../../hooks/useToast';
+import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../common/Button';
 import { Card } from '../../common/Card';
 import { Input } from '../../common/Input';
@@ -129,6 +129,9 @@ export function EasterEggVideosPanel() {
             <p className="mt-1 max-w-2xl text-sm text-ink-500">
               仅审核通过且启用的视频会进入学生自愿选择目录。学生 opt-in 默认关闭，视频不自动播放；内部标签与视频推荐无关。
             </p>
+            <a href="/docs/usage-guide" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:text-brand-800">
+              <CircleHelp className="h-3.5 w-3.5" />查看功能使用指南
+            </a>
           </div>
           <Button onClick={() => setFormOpen((open) => !open)}>
             <Plus className="h-4 w-4" />{formOpen ? '收起' : '提交视频'}

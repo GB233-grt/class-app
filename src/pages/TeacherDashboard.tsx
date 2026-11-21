@@ -39,12 +39,14 @@ const GROUPS: SidebarNavGroup[] = [
       { key: 'award', label: '学生加分', icon: Award },
       { key: 'bulk-award', label: '批量加分', icon: FileSpreadsheet },
       { key: 'promo', label: '启幕宣传页', icon: Megaphone },
-      { key: 'videos', label: '校园视频审核', icon: Video },
     ],
   },
   {
-    title: '我的账户',
-    items: [{ key: 'settings', label: '设置', icon: UserCog }],
+    title: '设置',
+    items: [
+      { key: 'settings', label: '个人设置', icon: UserCog },
+      { key: 'videos', label: '校园视频审核', icon: Video },
+    ],
   },
 ];
 

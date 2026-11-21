@@ -264,6 +264,10 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          <div className="mt-3 text-right">
+            <a href="/docs/usage-guide" className="text-xs font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800">查看功能使用指南</a>
+          </div>
+
           {/* 演示账号提示框 */}
           <div className="mt-8 rounded-lg border border-ink-200 bg-white p-4 text-sm">
             <p className="flex items-center gap-1.5 font-medium text-ink-700">
