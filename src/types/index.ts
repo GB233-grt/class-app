@@ -12,6 +12,17 @@ export interface EasterEggVideo {
   title: string;
   bvid: string;
   description: string;
+  category?: 'campus' | 'study' | 'culture' | 'other';
+  status?: 'pending' | 'approved' | 'rejected';
+  reject_reason?: string | null;
+  region_id?: string | null;
+  regions?: { name: string } | null;
+  is_active?: boolean;
+  sort_order?: number;
+  created_by?: string;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at?: string;
 }
 
 /** 学生标签 API 响应；hidden_tags 仅教职工接口响应中存在 */

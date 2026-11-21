@@ -140,6 +140,21 @@ export const userApi = {
 
 /** 管理员设置（管理员） */
 export const adminApi = {
+  /** 经审核的校园视频目录管理（教师提交、管理员审核/上下线，均受区域授权） */
+  easterEggVideos: {
+    list: (status?: 'pending' | 'approved' | 'rejected') =>
+      api.get<EasterEggVideo[]>(`/admin/easter-egg-videos${status ? `?status=${status}` : ''}`),
+    submit: (payload: {
+      title: string;
+      bvid: string;
+      description?: string;
+      category?: 'campus' | 'study' | 'culture' | 'other';
+      region_id?: string;
+    }) => api.post<EasterEggVideo>('/admin/easter-egg-videos', payload),
+    action: (id: string, action: 'approve' | 'reject' | 'enable' | 'disable', reason?: string) =>
+      api.post<EasterEggVideo>(`/admin/easter-egg-videos/${id}/action`, { action, reason }),
+  },
+
   /** 管理员/教师：查看学生标签（响应只对教职工包含 hidden_tags） */
   studentTags: (studentId: string) => api.get<StudentTagsResponse>(`/students/${studentId}/tags`),
   /** 管理员/教师：设置公开与内部标签（服务端执行区域授权校验） */
