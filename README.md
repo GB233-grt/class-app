@@ -119,6 +119,11 @@ cp .dev.vars.example .dev.vars
 | `12_digital_stock_limit.sql` | **修复**：网络商品按库存限量（含 11 的修复） |
 | `13_allow_zero_cost_items.sql` | 允许价格为 0 的免费商品（含 11、12 的修复） |
 | `14_item_expiry.sql` | 商品到期自动下架 |
+| `15_regions_and_rbac.sql` | 区域层级、区域授权与超级管理员 |
+| `16_student_summary.sql` | 学生兑换汇总统计函数 |
+| `17_fix_rls_for_super_admin.sql` | 修复超级管理员 RLS 读取权限 |
+| `18_promo_pages.sql` | 启幕宣传页及审核流程 |
+| `19_auto_unpublish_sold_out.sql` | 库存售罄后自动下架 |
 | `20_student_tags.sql` | 学生公开标签、教师内部标签与学生自愿视频偏好 |
 | `21_easter_egg_videos.sql` | 经审核的校园主题视频目录 |
 
@@ -206,6 +211,7 @@ npm run deploy      # 构建并部署到 Cloudflare Pages
 - **商品管理**：已上架 / 已下架两个分组，随时上下架
 - **系统设置**：开关「是否允许学生自助修改昵称 / 学号」
 - **账号体系**：新建学生/教师账号，同步创建登录账号
+- **校园视频审核**：教师提交校园主题视频，管理员审核后上线；学生默认关闭，可自行开启、选择并主动播放。内部标签不触发视频。
 
 ### 账户个性化（自愿）
 

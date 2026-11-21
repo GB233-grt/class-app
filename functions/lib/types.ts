@@ -158,3 +158,6 @@ export interface PromoPublicItem {
   link_label: string | null;
   frequency: PromoPage['frequency'];
 }
+/** 经管理员审核的校园主题视频 */
+export interface EasterEggVideo {
+ id: string; title: string; description: string; bvid: string; category: 'campus'|'study'|'culture'|'other'; status: 'pending'|'approved'|'rejected'; reject_reason: string|null; region_id: string|null; is_active: boolean; sort_order: number; created_by: string; reviewed_by: string|null; reviewed_at: string|null; created_at: string; updated_at: string; }

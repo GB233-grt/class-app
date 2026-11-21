@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS easter_egg_videos (
   bvid        text NOT NULL CHECK (bvid ~ '^BV[0-9A-Za-z]{10}$'),
   category    text NOT NULL DEFAULT 'campus' CHECK (category IN ('campus', 'study', 'culture', 'other')),
   status      text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  reject_reason text CHECK (reject_reason IS NULL OR char_length(reject_reason) <= 300),
+  region_id   uuid REFERENCES regions(id) ON DELETE CASCADE,
   is_active   boolean NOT NULL DEFAULT true,
   sort_order  integer NOT NULL DEFAULT 0,
   created_by  uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,

@@ -119,6 +119,13 @@ See [Configuration](#configuration) for every field. Both files are listed in `.
 | `12_digital_stock_limit.sql` | **Fix**: digital items now respect stock (includes fix 11) |
 | `13_allow_zero_cost_items.sql` | Allow zero-cost (free) items (includes fixes 11 and 12) |
 | `14_item_expiry.sql` | Auto-unpublish items on expiry |
+| `15_regions_and_rbac.sql` | Regions, staff authorization and super-admin role |
+| `16_student_summary.sql` | Student redemption summary function |
+| `17_fix_rls_for_super_admin.sql` | Fix super-admin RLS visibility |
+| `18_promo_pages.sql` | Opening Announcement content and review workflow |
+| `19_auto_unpublish_sold_out.sql` | Auto-unpublish sold-out items |
+| `20_student_tags.sql` | Public tags, staff-only tags and student opt-in preference |
+| `21_easter_egg_videos.sql` | Reviewed campus video catalogue |
 
 > Scripts 11, 12 and 13 all redefine the same database function — **only the newest one is required** (13 already contains the fixes from 11 and 12).
 
