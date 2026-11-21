@@ -1,5 +1,5 @@
 /**
- * 兑换商品面板：可兑换商品卡片网格
+ * 兑换商品面板：商品卡片列表 → 商品详情 → 确认兑换
  */
 import { useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useItems } from '../../../hooks/useItems';
 import { useToast } from '../../../hooks/useToast';
 import { ItemCard } from '../ItemCard';
+import { ItemDetailPage } from './ItemDetailPage';
 import { EmptyState, ErrorNotice } from '../../common/States';
 import { Spinner } from '../../common/Spinner';
 import { getErrorMessage } from '../../../lib/utils';
@@ -32,6 +33,9 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
   const { items, loading, error, refresh } = useItems();
   const { showToast } = useToast();
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+
+  const selectedItem = items.find((item) => item.id === selectedItemId) ?? null;
 
   // 兑换物品：后端原子校验数量/积分与库存
   const handleRedeem = async (item: Item, quantity: number) => {
@@ -39,12 +43,10 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
     setRedeemingId(item.id);
     try {
       await redemptionsApi.redeem(item.id, quantity);
-      showToast(
-        'success',
-        redeemSuccessMessage(item.type, quantity, item.name),
-      );
-      // 刷新积分余额与商品库存
+      showToast('success', redeemSuccessMessage(item.type, quantity, item.name));
+      // 刷新积分余额与商品库存；兑换成功后返回列表
       await Promise.all([refreshProfile(), refresh()]);
+      setSelectedItemId(null);
       onRedeemed();
     } catch (err) {
       showToast('error', getErrorMessage(err, '兑换失败，请稍后重试'));
@@ -63,6 +65,19 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
   if (error) {
     return <ErrorNotice message={error} onRetry={() => void refresh()} />;
   }
+
+  if (selectedItem) {
+    return (
+      <ItemDetailPage
+        item={selectedItem}
+        points={profile?.points ?? 0}
+        redeeming={redeemingId === selectedItem.id}
+        onBack={() => setSelectedItemId(null)}
+        onRedeem={(item, quantity) => void handleRedeem(item, quantity)}
+      />
+    );
+  }
+
   if (items.length === 0) {
     return (
       <EmptyState
@@ -79,9 +94,7 @@ export function StorePanel({ onRedeemed }: StorePanelProps) {
         <ItemCard
           key={item.id}
           item={item}
-          points={profile?.points ?? 0}
-          redeeming={redeemingId === item.id}
-          onRedeem={(target, quantity) => void handleRedeem(target, quantity)}
+          onOpen={(target) => setSelectedItemId(target.id)}
           delay={index * 60}
         />
       ))}
