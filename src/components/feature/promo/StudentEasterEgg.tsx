@@ -158,6 +158,7 @@ export function StudentEasterEgg({ studentId }: StudentEasterEggProps) {
           )}
         </div>
       )}
+      <a href="/docs/usage-guide" className="inline-block text-xs font-medium text-brand-700 underline underline-offset-2 hover:text-brand-800">查看功能使用指南</a>
     </section>
   );
 }
