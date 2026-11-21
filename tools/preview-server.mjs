@@ -146,17 +146,28 @@ function apiPayload(pathname) {
   // 学生端只应看到上架商品（与真实接口行为一致）
   if (pathname === '/api/items') return role === 'student' ? ITEMS.filter((i) => i.is_active) : ITEMS;
   if (pathname === '/api/promo-pages/active') {
-    // 启幕宣传页演示数据（仅本地预览用）
+    // 启幕宣传页演示数据（仅本地预览用）：两条，验证「多条依次展示」
     return {
-      item: {
-        id: 'promo-demo-1',
-        title: '学习红岩精神，做新时代青年',
-        body: '红岩精神是革命先辈用生命写下的答案：坚如磐石的理想信念、和衷共济的爱国情怀、不折不挠的凛然斗志。\n**本周班会请围绕这一主题展开讨论**，并提交一篇 300 字的学习心得。',
-        image_url: null,
-        link_url: 'https://www.example.edu.cn/hongyan',
-        link_label: '查看详情',
-        frequency: 'daily',
-      },
+      items: [
+        {
+          id: 'promo-demo-1',
+          title: '学习红岩精神，做新时代青年',
+          body: '红岩精神是革命先辈用生命写下的答案：坚如磐石的理想信念、和衷共济的爱国情怀、不折不挠的凛然斗志。\n**本周班会请围绕这一主题展开讨论**，并提交一篇 300 字的学习心得。',
+          image_url: null,
+          link_url: 'https://www.example.edu.cn/hongyan',
+          link_label: '查看详情',
+          frequency: 'once_per_launch',
+        },
+        {
+          id: 'promo-demo-2',
+          title: '安全提示：请尽快修改初始密码',
+          body: '为保障个人隐私与积分财产安全，请勿长期使用初始默认密码。\n建议使用**字母 + 数字 + 符号**的组合。',
+          image_url: null,
+          link_url: null,
+          link_label: null,
+          frequency: 'once_per_launch',
+        },
+      ],
     };
   }
   if (pathname === '/api/students') return STUDENTS;

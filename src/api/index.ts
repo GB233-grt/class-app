@@ -165,7 +165,7 @@ export const adminApi = {
 /** 启幕宣传页 */
 export const promoApi = {
   /** 当前应展示的内容（无内容时 item 为 null） */
-  active: () => api.get<{ item: PromoPublicItem | null }>('/promo-pages/active'),
+  active: () => api.get<{ items: PromoPublicItem[] }>('/promo-pages/active'),
   /** 管理列表（教师+，分页） */
   list: (params: PageQuery & { status?: PromoStatus } = {}) => {
     const qs = buildPageQuery(params).replace(/^\?/, '');
