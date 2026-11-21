@@ -145,6 +145,20 @@ function apiPayload(pathname) {
   if (pathname === '/api/auth/me' || pathname === '/api/user') return profile;
   // 学生端只应看到上架商品（与真实接口行为一致）
   if (pathname === '/api/items') return role === 'student' ? ITEMS.filter((i) => i.is_active) : ITEMS;
+  if (pathname === '/api/promo-pages/active') {
+    // 启幕宣传页演示数据（仅本地预览用）
+    return {
+      item: {
+        id: 'promo-demo-1',
+        title: '学习红岩精神，做新时代青年',
+        body: '红岩精神是革命先辈用生命写下的答案：坚如磐石的理想信念、和衷共济的爱国情怀、不折不挠的凛然斗志。\n**本周班会请围绕这一主题展开讨论**，并提交一篇 300 字的学习心得。',
+        image_url: null,
+        link_url: 'https://www.example.edu.cn/hongyan',
+        link_label: '查看详情',
+        frequency: 'daily',
+      },
+    };
+  }
   if (pathname === '/api/students') return STUDENTS;
   if (pathname === '/api/students/award') {
     // 课堂模式加减分：返回一个合理结果（不改真实数据）

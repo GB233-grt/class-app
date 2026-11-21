@@ -59,10 +59,16 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(16px) scale(0.95)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
+        // 弹窗入场：淡入 + 轻微上移（启幕宣传页）
+        'promo-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 0.5s ease-out both',
         pop: 'pop 0.25s ease-out both',
+        'promo-in': 'promo-in 0.2s ease-out both',
       },
     },
   },
