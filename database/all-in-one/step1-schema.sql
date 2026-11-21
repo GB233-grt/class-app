@@ -220,13 +220,13 @@ BEGIN
     RAISE EXCEPTION '库存不足，仅剩 % 件', v_stock;
   END IF;
 
-  v_new_balance := v_balance - v_total;
+  v_new_balance := v_balance - v_total;\n  v_new_stock := v_stock - p_quantity;
 
   -- 扣积分（0 积分商品不产生余额变化）+ 扣库存
   IF v_total > 0 THEN
     UPDATE students SET points = v_new_balance WHERE id = p_student_id;
   END IF;
-  UPDATE items SET stock = stock - p_quantity WHERE id = p_item_id;
+  UPDATE items\n     SET stock = v_new_stock,\n         is_active = CASE WHEN v_new_stock = 0 THEN false ELSE is_active END,\n         updated_at = CASE WHEN v_new_stock = 0 THEN now() ELSE updated_at END\n   WHERE id = p_item_id;
 
   IF v_type = 'digital' THEN
     -- 网络商品：兑换后自动标记"已发放"并返回下载链接（无需教师干预）

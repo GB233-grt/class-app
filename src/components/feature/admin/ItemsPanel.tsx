@@ -85,6 +85,11 @@ export function ItemsPanel() {
   // 两个分组的商品与数量
   const activeItems = useMemo(() => items.filter((item) => item.is_active), [items]);
   const inactiveItems = useMemo(() => items.filter((item) => !item.is_active), [items]);
+  /** 兑换扣到 0 后由数据库原子下架的商品；管理员可补库存后重新上架 */
+  const soldOutItems = useMemo(
+    () => inactiveItems.filter((item) => item.stock === 0),
+    [inactiveItems],
+  );
   const counts: Record<StatusTab, number> = {
     active: activeItems.length,
     inactive: inactiveItems.length,
@@ -287,9 +292,22 @@ export function ItemsPanel() {
         </div>
 
         {statusTab === 'inactive' && (
-          <p className="rounded-lg bg-ink-100/70 px-3 py-2 text-xs text-ink-500">
-            已下架商品在学生端不可见，历史兑换记录与积分明细不受影响，可随时重新上架。
-          </p>
+          <div className="space-y-2">
+            <p className="rounded-lg bg-ink-100/70 px-3 py-2 text-xs text-ink-500">
+              已下架商品在学生端不可见，历史兑换记录与积分明细不受影响，可随时重新上架。
+            </p>
+            {soldOutItems.length > 0 && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
+                <Package className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  <strong>{soldOutItems.length} 件商品因库存售罄已自动下架</strong>：
+                  {soldOutItems.slice(0, 3).map((item) => item.name).join('、')}
+                  {soldOutItems.length > 3 ? ` 等 ${soldOutItems.length} 件` : ''}。
+                  补充库存后可点「上架」恢复兑换。
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {error ? (
