@@ -15,6 +15,7 @@ import { createAdminClient } from '../../../lib/supabase';
 import type { Env } from '../../../lib/types';
 
 const MAX_TAGS = 8;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_TAG_LENGTH = 20;
 
 function parseTags(raw: unknown, field: string): string[] {
@@ -80,7 +81,10 @@ export const onRequestPut: PagesFunction<Env, 'id'> = async ({ params, request, 
       if (!body.easter_egg_opt_in) update.easter_egg_video_id = null;
     }
     if (body.easter_egg_video_id !== undefined) {
-      if (body.easter_egg_video_id !== null && typeof body.easter_egg_video_id !== 'string') {
+      if (
+        body.easter_egg_video_id !== null &&
+        (typeof body.easter_egg_video_id !== 'string' || !UUID_PATTERN.test(body.easter_egg_video_id))
+      ) {
         throw new HttpError(400, '视频选择无效');
       }
       update.easter_egg_video_id = body.easter_egg_video_id;

@@ -34,7 +34,7 @@ CREATE TABLE students (
   public_tags text[] NOT NULL DEFAULT '{}',
   hidden_tags text[] NOT NULL DEFAULT '{}',
   easter_egg_opt_in boolean NOT NULL DEFAULT false,
-  easter_egg_video_id text CHECK (easter_egg_video_id IS NULL OR easter_egg_video_id ~ '^BV[0-9A-Za-z]{10}$'),
+  easter_egg_video_id uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT students_public_tags_count_check CHECK (cardinality(public_tags) <= 8),
   CONSTRAINT students_hidden_tags_count_check CHECK (cardinality(hidden_tags) <= 8),
@@ -111,6 +111,9 @@ CREATE TABLE easter_egg_videos (
 );
 CREATE INDEX idx_easter_egg_videos_public ON easter_egg_videos(status, is_active, sort_order);
 ALTER TABLE easter_egg_videos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE students
+  ADD CONSTRAINT students_easter_egg_video_id_fkey
+  FOREIGN KEY (easter_egg_video_id) REFERENCES easter_egg_videos(id) ON DELETE SET NULL;
 -- 第 3 部分：兑换记录表 redemptions
 -- ============================================================
 CREATE TABLE redemptions (
