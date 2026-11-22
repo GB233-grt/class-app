@@ -126,6 +126,7 @@ cp .dev.vars.example .dev.vars
 | `19_auto_unpublish_sold_out.sql` | 库存售罄后自动下架 |
 | `20_student_tags.sql` | 学生公开标签、教师内部标签与学生自愿视频偏好 |
 | `21_easter_egg_videos.sql` | 经审核的校园主题视频目录 |
+| `22_fix_easter_egg_video_reference.sql` | 修复学生视频偏好列：清理旧值并改为审核视频 UUID 外键 |
 
 > 11、12、13 都在重写同一个数据库函数，**只需执行最新的那个**（13 已包含 11、12 的全部修复）。
 

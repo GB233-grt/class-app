@@ -126,6 +126,7 @@ See [Configuration](#configuration) for every field. Both files are listed in `.
 | `19_auto_unpublish_sold_out.sql` | Auto-unpublish sold-out items |
 | `20_student_tags.sql` | Public tags, staff-only tags and student opt-in preference |
 | `21_easter_egg_videos.sql` | Reviewed campus video catalogue |
+| `22_fix_easter_egg_video_reference.sql` | Fix student video preference column type and foreign key |
 
 > Scripts 11, 12 and 13 all redefine the same database function — **only the newest one is required** (13 already contains the fixes from 11 and 12).
 
