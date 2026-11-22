@@ -95,7 +95,7 @@ export function StudentsPanel() {
       await refresh();
       setTagTarget(null);
     } catch (err) {
-      showToast('error', getErrorMessage(err, '保存标签失败'));
+      showToast('error', getErrorMessage(err, '保存标签失败，请确认已执行 database/migrations/20_student_tags.sql'));
     } finally {
       setTagsSaving(false);
     }

@@ -116,6 +116,20 @@ export function requireInt(
 
 /** 将数据库异常消息转换为用户可读的中文提示 */
 export function translateDbError(message: string): string {
+  // database/migrations/20_student_tags.sql
+  if (
+    /column .*?(public_tags|hidden_tags|easter_egg_opt_in|easter_egg_video_id).*?does not exist/i.test(message) ||
+    /Could not find the .*?(public_tags|hidden_tags|easter_egg_opt_in|easter_egg_video_id).*?column/i.test(message)
+  ) {
+    return '学生标签字段尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/20_student_tags.sql 后重试';
+  }
+  // database/migrations/21_easter_egg_videos.sql
+  if (
+    message.includes('easter_egg_videos') &&
+    (message.includes('does not exist') || message.includes('Could not find the table'))
+  ) {
+    return '校园视频目录尚未升级：请在 Supabase SQL Editor 中执行 database/migrations/21_easter_egg_videos.sql 后重试';
+  }
   if (message.includes('duplicate key')) return '数据已存在，请勿重复添加';
   if (message.includes('row-level security')) return '没有权限执行该操作';
   if (message.includes('violates check constraint')) {

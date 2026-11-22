@@ -8,7 +8,7 @@
  * GET /api/student-easter-eggs
  *   返回学生本人 opt-in 后已审核可播放的视频候选；绝不返回其 hidden_tags。
  */
-import { HttpError, jsonResponse, readJson, requireString } from '../../../lib/http';
+import { HttpError, jsonResponse, readJson, requireString, translateDbError } from '../../../lib/http';
 import { requireAuth } from '../../../lib/auth';
 import { assertStudentAllowed } from '../../../lib/rbac';
 import { createAdminClient } from '../../../lib/supabase';
@@ -122,7 +122,7 @@ export const onRequestPut: PagesFunction<Env, 'id'> = async ({ params, request, 
     .eq('id', id)
     .select('id, public_tags, easter_egg_opt_in, easter_egg_video_id')
     .maybeSingle();
-  if (error) throw new HttpError(500, '保存标签失败');
+  if (error) throw new HttpError(500, translateDbError(error.message));
   if (!data) throw new HttpError(404, '用户不存在');
   return jsonResponse(data);
 };
